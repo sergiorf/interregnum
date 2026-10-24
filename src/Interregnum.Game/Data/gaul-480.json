@@ -1,0 +1,129 @@
+{
+  "id": "gaul-480",
+  "name": "Gaul, 480 AD",
+  "startYear": 480,
+  "startingTurn": 1,
+  "factions": [
+    {
+      "id": "roman-domain",
+      "name": "Roman Domain of Soissons",
+      "color": "#496D8C",
+      "treasury": 220,
+      "foodReserves": 160,
+      "militaryStrength": 34,
+      "stability": 68,
+      "isPlayable": true
+    },
+    {
+      "id": "visigothic-kingdom",
+      "name": "Visigothic Kingdom",
+      "color": "#9A654A",
+      "treasury": 260,
+      "foodReserves": 190,
+      "militaryStrength": 48,
+      "stability": 72,
+      "isPlayable": false
+    },
+    {
+      "id": "frankish-kingdom",
+      "name": "Frankish Kingdom",
+      "color": "#647A4C",
+      "treasury": 180,
+      "foodReserves": 145,
+      "militaryStrength": 40,
+      "stability": 64,
+      "isPlayable": false
+    }
+  ],
+  "provinces": [
+    {
+      "id": "armorica", "name": "Armorica", "ownerId": "roman-domain",
+      "population": 72, "agriculturalProduction": 17, "taxRevenue": 11,
+      "loyalty": 63, "administrativeBurden": 4, "taxRate": "Normal",
+      "settlementName": "Condate", "neighbors": ["parisii", "aquitania"],
+      "mapPolygon": [{"x":25,"y":35},{"x":208,"y":24},{"x":220,"y":190},{"x":35,"y":180}]
+    },
+    {
+      "id": "parisii", "name": "Parisii", "ownerId": "roman-domain",
+      "population": 96, "agriculturalProduction": 21, "taxRevenue": 18,
+      "loyalty": 76, "administrativeBurden": 5, "taxRate": "Normal",
+      "settlementName": "Lutetia", "neighbors": ["armorica", "belgica", "aurelianum"],
+      "mapPolygon": [{"x":208,"y":24},{"x":423,"y":38},{"x":432,"y":186},{"x":220,"y":190}]
+    },
+    {
+      "id": "belgica", "name": "Belgica", "ownerId": "frankish-kingdom",
+      "population": 84, "agriculturalProduction": 19, "taxRevenue": 14,
+      "loyalty": 69, "administrativeBurden": 5, "taxRate": "Normal",
+      "settlementName": "Durocortorum", "neighbors": ["parisii", "ripuaria", "burgundia"],
+      "mapPolygon": [{"x":423,"y":38},{"x":632,"y":25},{"x":645,"y":194},{"x":432,"y":186}]
+    },
+    {
+      "id": "ripuaria", "name": "Ripuaria", "ownerId": "frankish-kingdom",
+      "population": 61, "agriculturalProduction": 14, "taxRevenue": 10,
+      "loyalty": 73, "administrativeBurden": 4, "taxRate": "Low",
+      "settlementName": "Colonia", "neighbors": ["belgica", "alemannia"],
+      "mapPolygon": [{"x":632,"y":25},{"x":846,"y":44},{"x":838,"y":182},{"x":645,"y":194}]
+    },
+    {
+      "id": "aquitania", "name": "Aquitania", "ownerId": "visigothic-kingdom",
+      "population": 88, "agriculturalProduction": 25, "taxRevenue": 15,
+      "loyalty": 66, "administrativeBurden": 6, "taxRate": "Normal",
+      "settlementName": "Burdigala", "neighbors": ["armorica", "aurelianum", "novempopulania"],
+      "mapPolygon": [{"x":35,"y":180},{"x":220,"y":190},{"x":214,"y":375},{"x":22,"y":364}]
+    },
+    {
+      "id": "aurelianum", "name": "Aurelianum", "ownerId": "roman-domain",
+      "population": 105, "agriculturalProduction": 27, "taxRevenue": 20,
+      "loyalty": 79, "administrativeBurden": 5, "taxRate": "Normal",
+      "settlementName": "Aurelianum", "neighbors": ["parisii", "aquitania", "burgundia", "narbonensis"],
+      "mapPolygon": [{"x":220,"y":190},{"x":432,"y":186},{"x":425,"y":382},{"x":214,"y":375}]
+    },
+    {
+      "id": "burgundia", "name": "Burgundia", "ownerId": "roman-domain",
+      "population": 92, "agriculturalProduction": 22, "taxRevenue": 17,
+      "loyalty": 58, "administrativeBurden": 7, "taxRate": "High",
+      "settlementName": "Lugdunum", "neighbors": ["belgica", "aurelianum", "alemannia", "arvernia"],
+      "mapPolygon": [{"x":432,"y":186},{"x":645,"y":194},{"x":635,"y":370},{"x":425,"y":382}]
+    },
+    {
+      "id": "alemannia", "name": "Alemannia", "ownerId": "frankish-kingdom",
+      "population": 57, "agriculturalProduction": 13, "taxRevenue": 9,
+      "loyalty": 61, "administrativeBurden": 5, "taxRate": "Low",
+      "settlementName": null, "neighbors": ["ripuaria", "burgundia", "provence"],
+      "mapPolygon": [{"x":645,"y":194},{"x":838,"y":182},{"x":850,"y":377},{"x":635,"y":370}]
+    },
+    {
+      "id": "novempopulania", "name": "Novempopulania", "ownerId": "visigothic-kingdom",
+      "population": 64, "agriculturalProduction": 20, "taxRevenue": 10,
+      "loyalty": 71, "administrativeBurden": 5, "taxRate": "Normal",
+      "settlementName": "Elusa", "neighbors": ["aquitania", "narbonensis"],
+      "mapPolygon": [{"x":22,"y":364},{"x":214,"y":375},{"x":224,"y":552},{"x":38,"y":560}]
+    },
+    {
+      "id": "narbonensis", "name": "Narbonensis", "ownerId": "visigothic-kingdom",
+      "population": 83, "agriculturalProduction": 23, "taxRevenue": 16,
+      "loyalty": 67, "administrativeBurden": 6, "taxRate": "Normal",
+      "settlementName": "Tolosa", "neighbors": ["aurelianum", "novempopulania", "arvernia"],
+      "mapPolygon": [{"x":214,"y":375},{"x":425,"y":382},{"x":436,"y":548},{"x":224,"y":552}]
+    },
+    {
+      "id": "arvernia", "name": "Arvernia", "ownerId": "roman-domain",
+      "population": 77, "agriculturalProduction": 18, "taxRevenue": 13,
+      "loyalty": 55, "administrativeBurden": 7, "taxRate": "Normal",
+      "settlementName": "Augustonemetum", "neighbors": ["burgundia", "narbonensis", "provence"],
+      "mapPolygon": [{"x":425,"y":382},{"x":635,"y":370},{"x":646,"y":560},{"x":436,"y":548}]
+    },
+    {
+      "id": "provence", "name": "Provence", "ownerId": "visigothic-kingdom",
+      "population": 99, "agriculturalProduction": 16, "taxRevenue": 21,
+      "loyalty": 60, "administrativeBurden": 8, "taxRate": "High",
+      "settlementName": "Arelate", "neighbors": ["alemannia", "arvernia"],
+      "mapPolygon": [{"x":635,"y":370},{"x":850,"y":377},{"x":840,"y":555},{"x":646,"y":560}]
+    }
+  ],
+  "armies": [
+    {"id": "roman-field-army", "ownerId": "roman-domain", "provinceId": "aurelianum", "strength": 24, "upkeep": 8},
+    {"id": "visigothic-host", "ownerId": "visigothic-kingdom", "provinceId": "narbonensis", "strength": 32, "upkeep": 10},
+    {"id": "frankish-warband", "ownerId": "frankish-kingdom", "provinceId": "belgica", "strength": 28, "upkeep": 9}
+  ]
+}

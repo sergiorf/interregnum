@@ -1,0 +1,31 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interregnum.Core", "src\Interregnum.Core\Interregnum.Core.csproj", "{1CB4DF55-041A-40B8-B3B7-FF9D69D4CB16}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interregnum.Game", "src\Interregnum.Game\Interregnum.Game.csproj", "{A81123E8-9948-43F2-933A-53F48ECA25A2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Interregnum.Tests", "tests\Interregnum.Tests\Interregnum.Tests.csproj", "{473463A8-A123-4E2B-BD82-3894DE9C355E}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1CB4DF55-041A-40B8-B3B7-FF9D69D4CB16}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1CB4DF55-041A-40B8-B3B7-FF9D69D4CB16}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1CB4DF55-041A-40B8-B3B7-FF9D69D4CB16}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1CB4DF55-041A-40B8-B3B7-FF9D69D4CB16}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A81123E8-9948-43F2-933A-53F48ECA25A2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A81123E8-9948-43F2-933A-53F48ECA25A2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A81123E8-9948-43F2-933A-53F48ECA25A2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A81123E8-9948-43F2-933A-53F48ECA25A2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{473463A8-A123-4E2B-BD82-3894DE9C355E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{473463A8-A123-4E2B-BD82-3894DE9C355E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{473463A8-A123-4E2B-BD82-3894DE9C355E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{473463A8-A123-4E2B-BD82-3894DE9C355E}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal

@@ -11,6 +11,7 @@ public sealed partial class Main : Control
     private readonly Label _provinceTitle = new();
     private readonly Label _provinceDetails = new();
     private readonly Label _actionFeedback = new();
+    private readonly Label _realmStatus = new();
     private readonly Dictionary<TaxRate, Button> _taxButtons = [];
     private SimulationEngine? _engine;
     private WorldState? _world;
@@ -53,14 +54,10 @@ public sealed partial class Main : Control
 
         var playableFaction = _world!.Factions.Values.Single(faction => faction.IsPlayable);
         _playerId = playableFaction.Id;
-        var status = new Label
-        {
-            Text = $"{playableFaction.Name}    Treasury  {playableFaction.Treasury} solidi    " +
-                   $"Food  {playableFaction.FoodReserves}    Turn {_world.Turn}",
-            Position = new Vector2(28, 53)
-        };
-        StyleLabel(status, 16);
-        AddChild(status);
+        _realmStatus.Position = new Vector2(28, 53);
+        StyleLabel(_realmStatus, 16);
+        AddChild(_realmStatus);
+        RefreshRealmStatus();
 
         var mapFrame = new Panel
         {
@@ -136,13 +133,14 @@ public sealed partial class Main : Control
         StyleLabel(mapHelp, 13, new Color("92a0a3"));
         panel.AddChild(mapHelp);
 
-        var milestone = new Label
+        var endTurn = new Button
         {
-            Text = "MILESTONE 1\n\nTax policy commands are live.\nEnd-turn processing comes next.",
-            Position = new Vector2(22, 718)
+            Text = "End Turn",
+            Position = new Vector2(22, 718),
+            Size = new Vector2(250, 42)
         };
-        StyleLabel(milestone, 14, new Color("92a0a3"));
-        panel.AddChild(milestone);
+        endTurn.Pressed += EndTurn;
+        panel.AddChild(endTurn);
     }
 
     private void ShowProvince(ProvinceDefinition definition)
@@ -210,6 +208,43 @@ public sealed partial class Main : Control
             "font_color",
             result.Succeeded ? new Color("9fc59f") : new Color("d6a28f"));
         RefreshSelectedProvince();
+    }
+
+    private void EndTurn()
+    {
+        var result = _engine!.Execute(new EndTurn(_playerId));
+        _world = result.State;
+        if (result.Succeeded)
+        {
+            var report = result.TurnReport!.Factions.Single(item => item.FactionId == _playerId);
+            _actionFeedback.Text =
+                $"Turn {result.TurnReport.CompletedTurn}: Food {report.OpeningFood} +{report.FoodProduction} " +
+                $"-{report.FoodConsumed} = {report.ClosingFood}. Treasury {report.OpeningTreasury} " +
+                $"+{report.TaxRevenue} -{report.UpkeepPaid} -{report.AdministrationPaid} = {report.ClosingTreasury}.";
+            if (report.UnmetFood > 0 || report.UpkeepUnpaid > 0 || report.AdministrationUnpaid > 0)
+            {
+                _actionFeedback.Text +=
+                    $" Unmet: food {report.UnmetFood}, upkeep {report.UpkeepUnpaid}, administration {report.AdministrationUnpaid}.";
+            }
+
+            _actionFeedback.AddThemeColorOverride("font_color", new Color("9fc59f"));
+        }
+        else
+        {
+            _actionFeedback.Text = result.ErrorMessage ?? $"Command rejected: {result.ErrorCode}.";
+            _actionFeedback.AddThemeColorOverride("font_color", new Color("d6a28f"));
+        }
+
+        RefreshRealmStatus();
+        RefreshSelectedProvince();
+    }
+
+    private void RefreshRealmStatus()
+    {
+        var player = _world!.Factions[_playerId];
+        _realmStatus.Text =
+            $"{player.Name}    Treasury  {player.Treasury} solidi    " +
+            $"Food  {player.FoodReserves}    Turn {_world.Turn}";
     }
 
     private static ScenarioDefinition LoadScenario(string resourcePath)

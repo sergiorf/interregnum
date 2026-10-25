@@ -66,9 +66,9 @@ The first Milestone 1 slice introduces the command vocabulary:
 - `MoveArmy`
 - `EndTurn`
 
-A single `SimulationEngine.Execute(GameCommand)` entry point validates against current state and returns a structured `CommandResult` containing success/failure, stable error codes, resulting state, and domain events. An invalid command never partially updates state. `SetProvinceTaxRate` is implemented; the other command types currently return `CommandNotAvailable` until their approved work packages implement them.
+A single `SimulationEngine.Execute(GameCommand)` entry point validates against current state and returns a structured `CommandResult` containing success/failure, stable error codes, resulting state, and domain events. An invalid command never partially updates state. `SetProvinceTaxRate` and the M1.2 economic `EndTurn` are implemented; recruitment and movement return `CommandNotAvailable` until their approved work packages implement them.
 
-`EndTurn` will run a fixed ordered pipeline: production, consumption, taxation, military upkeep, administration, loyalty, rebellion, faction stability, then turn advancement. Events from each stage will carry the numbers needed to explain the summary UI. No randomness is planned for the first playable slice.
+`EndTurn` runs a fixed ordered pipeline: production, consumption, taxation, military upkeep, administration, loyalty, rebellion, faction stability, then turn advancement. M1.2 implements the economic stages and turn advancement; the intervening loyalty, rebellion, and stability stages are reserved for M1.3. Ordered events and a reconciled turn report carry the numbers needed by the summary UI. No randomness is planned for the first playable slice.
 
 ## Godot integration
 

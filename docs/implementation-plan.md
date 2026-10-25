@@ -118,6 +118,8 @@ Introduce the smallest useful Core command surface, expected to include explicit
 
 ### M1.2 — Approved economy and one end turn
 
+**Implementation status:** The provisional M1.2 economy slice is implemented locally as of 2026-10-25: deterministic all-faction food, tax, upkeep, and administration processing; atomic overflow rejection; reconciled reports and ordered events; Godot end-turn feedback; and exact, shortage, insolvency, ordering, and 20-turn replay tests. Loyalty, rebellion, stability consequences, and interactive Godot verification remain outside this slice.
+
 Freeze exact order and integer arithmetic in `rules-v1.md`. A candidate pipeline is:
 
 1. Food production.

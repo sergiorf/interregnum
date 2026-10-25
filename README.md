@@ -8,7 +8,7 @@
 
 Interregnum is a single-player, turn-based historical strategy game set during the fragmentation of the Western Roman Empire. Its central idea is that conquering territory is easier than governing it: growth creates wealth and strategic depth, but also administrative cost, fragile loyalties, and instability.
 
-This repository contains the project foundation and the first **Milestone 1** vertical slice. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD, presents it in a stylized Western Europe setting in Godot, and supports authoritative tax-policy commands for player-owned provinces.
+This repository contains the project foundation and the first **Milestone 1** vertical slices. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD, presents it in a stylized Western Europe setting in Godot, and supports authoritative tax-policy commands and deterministic economic turns.
 
 ## Project structure
 
@@ -63,11 +63,13 @@ The executable name may be `Godot_v4.7.2-stable_mono_win64.exe` if the downloade
 - xUnit coverage for loading, ownership, adjacency, and invalid scenario rejection.
 - Atomic Core-owned tax-policy commands with stable errors and explanatory events.
 - Godot controls for changing the selected player-owned province's tax policy.
+- Deterministic food production and consumption, taxation, upkeep, and administration for every faction.
+- Reconciled Core-owned turn reports and a Godot End Turn summary.
 - Deterministic build settings and no simulation randomness.
 
 ## Current limitations
 
-- No turn progression, economy processing, recruitment, movement, rebellion, save/load, AI, or victory conditions yet.
+- No recruitment, movement, loyalty processing, rebellion, save/load, AI, or victory conditions yet.
 - Only the Roman polity is playable; rival factions remain passive.
 - Geography and political boundaries are intentionally stylized.
 - The UI uses native controls and generated polygons; no final art, accessibility pass, localization, or resolution matrix exists yet.

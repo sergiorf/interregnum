@@ -1,8 +1,8 @@
 # Milestone 1 rules vocabulary
 
-**Status:** The M1.1 tax-command subset is adopted for implementation; economy, rebellion, recruitment, movement, and end-turn recommendations remain draft until their respective reviews
+**Status:** The M1.1 tax-command subset and provisional M1.2 economy rules are adopted; loyalty, rebellion, recruitment, and movement recommendations remain draft until their respective reviews
 
-This document defines the minimum vocabulary and timing needed to implement Milestone 1 without hidden defaults. Items labelled **Recommendation** require human approval. Exact economy coefficients, loyalty changes, rebellion thresholds, and stability formulas remain deliberately unresolved until the M1.2/M1.3 rules review.
+This document defines the minimum vocabulary and timing needed to implement Milestone 1 without hidden defaults. Items labelled **Recommendation** require human approval. Loyalty changes, rebellion thresholds, recruitment values, and stability formulas remain deliberately unresolved until their respective reviews.
 
 ## 1. Time and session model
 
@@ -12,7 +12,7 @@ Milestone 1 has exactly one playable faction and one active actor. Only that act
 
 The player may submit any number of valid tax commands, subject to the no-op rule below, and eligible recruitment and movement commands before ending the turn. `EndTurn` processes a complete world round in a fixed order, publishes one report, advances the turn once, clears per-turn command limits, and returns control to the same playable actor.
 
-**Recommendation:** Passive factions undergo the same deterministic production, consumption, taxation, upkeep, administration, loyalty, rebellion, and stability pipeline using their standing policies. This keeps one coherent world clock without introducing rival AI. Processing and event ordering must use stable faction and province ID order.
+Passive factions undergo the same deterministic production, consumption, taxation, upkeep, administration, loyalty, rebellion, and stability pipeline using their standing policies. This keeps one coherent world clock without introducing rival AI. Processing and event ordering use stable faction and province ID order.
 
 Campaign or survival checks run only after a successful `EndTurn` has completed and the turn has advanced. Invalid commands and intermediate pipeline stages never trigger them.
 
@@ -51,17 +51,17 @@ Changing a rate is immediate, costs no resource, and may be done more than once 
 
 Tax revenue is collected during `EndTurn`, not when policy changes. Opening rebellion status determines whether a province pays tax for that round. A rebellion or recovery transition produced later in the pipeline applies to the following round.
 
-The exact Low/Normal/High revenue multipliers, integer rounding rule, and loyalty effects are unresolved M1.2 values. They must be approved with worked examples before end-turn economy code is added.
+For the provisional M1 balance, Low/Normal/High taxation collects 30/60/100 percent of base revenue. Multiplication occurs before division by 100 and integer division truncates the non-negative result. For example, base revenue 11 at Normal produces `11 * 60 / 100 = 6`. Loyalty effects remain unresolved for M1.3.
 
 ## 5. Food, currency, and mandatory costs
 
 Food and currency are non-negative integer faction resources. Voluntary commands are rejected atomically when their full immediate cost cannot be paid. Milestone 1 has no loans, debt, resource trading, or negative balances.
 
-Food is produced and consumed during `EndTurn`. A faction-wide shortage for that round is the unmet consumption after all available food is consumed. Shortage is a reported turn outcome, not a permanently stored `Famine` flag. Its approved loyalty and stability consequences are applied later in the same pipeline and reported with their causes.
+Food is produced and consumed during `EndTurn`. Each owned province adds its `AgriculturalProduction` to the faction pool and demands `ceil(Population / 4)` food. Production is added before consumption. A faction-wide shortage for that round is the unmet consumption after all available food is consumed. Shortage is a reported turn outcome, not assigned to an arbitrary province and not stored as a permanent `Famine` flag. Its loyalty and stability consequences remain an M1.3 decision.
 
-Military upkeep and provincial administration are mandatory end-turn obligations. The behavior when treasury is insufficient—priority, unpaid amount, and consequences—remains unresolved and must be approved before M1.2. Code must not choose silently between negative treasury, proportional payment, army removal, or a generic penalty.
+Military upkeep and provincial administration are mandatory end-turn obligations. Tax is added first, then army upkeep is paid in stable army-ID order, followed by administration in stable province-ID order. Each obligation receives as much of the remaining non-negative treasury as possible. The report exposes due, paid, and unpaid amounts. M1.2 does not remove armies or apply a hidden penalty; consequences for unpaid obligations remain an explicit M1.3 decision.
 
-All arithmetic uses checked integers. Percentage calculations require an explicit order of operations and truncation rule in the approved M1.2 examples.
+All arithmetic uses checked integers. An overflow rejects `EndTurn` atomically with an unchanged state and no events.
 
 ## 6. Rebellion and recovery
 
@@ -93,7 +93,7 @@ Legal destinations are a Core-owned query over the current snapshot. The UI may 
 
 ## 9. End-turn order
 
-The proposed fixed pipeline is:
+The fixed pipeline is:
 
 1. Food production.
 2. Food consumption and shortage calculation.
@@ -107,7 +107,7 @@ The proposed fixed pipeline is:
 
 Every stage completes for all affected factions in stable ID order before the next stage begins. Events are emitted in pipeline stage, faction ID, province or army ID order. No stage reads unordered iteration as a tie-breaker.
 
-This ordering is a recommendation until the M1.2 worked examples and insufficient-treasury behavior are approved.
+Stages 1–5 and 9 are implemented in M1.2. Stages 6–8 remain reserved in this order for M1.3 and do not yet change state.
 
 ## 10. Turn report reconciliation
 

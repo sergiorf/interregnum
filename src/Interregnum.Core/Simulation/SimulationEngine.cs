@@ -27,11 +27,156 @@ public sealed class SimulationEngine
         return command switch
         {
             SetProvinceTaxRate setTaxRate => Execute(setTaxRate),
+            EndTurn endTurn => Execute(endTurn),
             _ => CommandResult.Failure(
                 State,
                 CommandErrorCode.CommandNotAvailable,
                 $"Command '{command.GetType().Name}' is not available in the current simulation slice.")
         };
+    }
+
+    private CommandResult Execute(EndTurn command)
+    {
+        try
+        {
+            var completedTurn = State.Turn;
+            var nextTurn = checked(completedTurn + 1);
+            var reports = BuildFactionReports();
+            var factions = State.Factions.ToDictionary(item => item.Key, item => item.Value);
+
+            foreach (var report in reports)
+            {
+                var faction = factions[report.FactionId];
+                factions[report.FactionId] = faction with
+                {
+                    FoodReserves = report.ClosingFood,
+                    Treasury = report.ClosingTreasury
+                };
+            }
+
+            var events = BuildTurnEvents(reports, completedTurn, nextTurn);
+            State = State.WithFactionsAndTurn(factions, nextTurn);
+            return CommandResult.Success(
+                State,
+                new TurnReport(completedTurn, nextTurn, reports),
+                events);
+        }
+        catch (OverflowException)
+        {
+            return CommandResult.Failure(
+                State,
+                CommandErrorCode.ArithmeticOverflow,
+                "The turn could not be processed because an economic calculation exceeded its supported range.");
+        }
+    }
+
+    private IReadOnlyList<FactionTurnReport> BuildFactionReports()
+    {
+        var reports = new List<FactionTurnReport>();
+        foreach (var faction in State.Factions.Values.OrderBy(item => item.Id.Value, StringComparer.Ordinal))
+        {
+            var provinces = State.Provinces.Values
+                .Where(item => item.OwnerId == faction.Id)
+                .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
+                .ToArray();
+            var armies = State.Armies.Values
+                .Where(item => item.OwnerId == faction.Id)
+                .OrderBy(item => item.Id.Value, StringComparer.Ordinal)
+                .ToArray();
+
+            var producedFood = provinces.Aggregate(0,
+                (total, province) => checked(total + province.AgriculturalProduction));
+            var availableFood = checked(faction.FoodReserves + producedFood);
+            var foodReports = provinces.Select(province => new ProvinceFoodReport(
+                province.Id,
+                province.AgriculturalProduction,
+                checked(province.Population / 4 + (province.Population % 4 == 0 ? 0 : 1))))
+                .ToArray();
+            var foodDemand = foodReports.Aggregate(0, (total, item) => checked(total + item.Demand));
+            var foodConsumed = Math.Min(availableFood, foodDemand);
+            var unmetFood = checked(foodDemand - foodConsumed);
+            availableFood = checked(availableFood - foodConsumed);
+
+            var treasury = faction.Treasury;
+            var taxReports = new List<ProvinceTaxReport>();
+            foreach (var province in provinces)
+            {
+                var collected = ApplyTaxRate(province.TaxRevenue, province.TaxRate);
+                treasury = checked(treasury + collected);
+                taxReports.Add(new ProvinceTaxReport(
+                    province.Id, province.TaxRevenue, province.TaxRate, collected));
+            }
+
+            var upkeepReports = new List<ArmyUpkeepReport>();
+            foreach (var army in armies)
+            {
+                var paid = Math.Min(treasury, army.Upkeep);
+                treasury = checked(treasury - paid);
+                upkeepReports.Add(new ArmyUpkeepReport(
+                    army.Id, army.Upkeep, paid, checked(army.Upkeep - paid)));
+            }
+
+            var administrationReports = new List<ProvinceAdministrationReport>();
+            foreach (var province in provinces)
+            {
+                var paid = Math.Min(treasury, province.AdministrativeBurden);
+                treasury = checked(treasury - paid);
+                administrationReports.Add(new ProvinceAdministrationReport(
+                    province.Id,
+                    province.AdministrativeBurden,
+                    paid,
+                    checked(province.AdministrativeBurden - paid)));
+            }
+
+            reports.Add(new FactionTurnReport(
+                faction.Id,
+                faction.FoodReserves,
+                availableFood,
+                foodConsumed,
+                unmetFood,
+                foodReports,
+                faction.Treasury,
+                treasury,
+                taxReports,
+                upkeepReports,
+                administrationReports));
+        }
+
+        return reports;
+    }
+
+    private static IReadOnlyList<DomainEvent> BuildTurnEvents(
+        IReadOnlyList<FactionTurnReport> reports,
+        int completedTurn,
+        int nextTurn)
+    {
+        var events = new List<DomainEvent>();
+        events.AddRange(reports.SelectMany(report => report.FoodByProvince.Select(item =>
+            new ProvinceFoodProduced(report.FactionId, item.ProvinceId, item.Production))));
+        events.AddRange(reports.Select(report => new FactionFoodConsumed(
+            report.FactionId, report.FoodDemand, report.FoodConsumed, report.UnmetFood)));
+        events.AddRange(reports.SelectMany(report => report.TaxByProvince.Select(item =>
+            new ProvinceTaxCollected(
+                report.FactionId, item.ProvinceId, item.BaseRevenue, item.TaxRate, item.Collected))));
+        events.AddRange(reports.SelectMany(report => report.UpkeepByArmy.Select(item =>
+            new ArmyUpkeepPaid(report.FactionId, item.ArmyId, item.Due, item.Paid, item.Unpaid))));
+        events.AddRange(reports.SelectMany(report => report.AdministrationByProvince.Select(item =>
+            new ProvinceAdministrationPaid(
+                report.FactionId, item.ProvinceId, item.Due, item.Paid, item.Unpaid))));
+        events.Add(new TurnAdvanced(completedTurn, nextTurn));
+        return events;
+    }
+
+    private static int ApplyTaxRate(int baseRevenue, TaxRate taxRate)
+    {
+        var percentage = taxRate switch
+        {
+            TaxRate.Low => 30,
+            TaxRate.Normal => 60,
+            TaxRate.High => 100,
+            _ => throw new InvalidOperationException($"Unsupported tax rate '{taxRate}'.")
+        };
+        return checked(baseRevenue * percentage) / 100;
     }
 
     private CommandResult Execute(SetProvinceTaxRate command)

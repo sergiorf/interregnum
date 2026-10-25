@@ -8,7 +8,7 @@
 
 Interregnum is a single-player, turn-based historical strategy game set during the fragmentation of the Western Roman Empire. Its central idea is that conquering territory is easier than governing it: growth creates wealth and strategic depth, but also administrative cost, fragile loyalties, and instability.
 
-This repository currently contains **Milestone 0**, the project foundation. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD and presents it in a stylized Western Europe setting in Godot. The turn simulation and player commands are deliberately reserved for Milestone 1.
+This repository contains the project foundation and the first **Milestone 1** vertical slice. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD, presents it in a stylized Western Europe setting in Godot, and supports authoritative tax-policy commands for player-owned provinces.
 
 ## Project structure
 
@@ -61,12 +61,14 @@ The executable name may be `Godot_v4.7.2-stable_mono_win64.exe` if the downloade
 - Fictionalized Gaul, 480 AD scenario with three factions and 12 connected provinces.
 - Natural Earth-based Western Europe context map with a selectable, fictionalized 12-province Gaul campaign, seamless shared province boundaries, zoom/pan controls, faction colors, and an inspection panel.
 - xUnit coverage for loading, ownership, adjacency, and invalid scenario rejection.
+- Atomic Core-owned tax-policy commands with stable errors and explanatory events.
+- Godot controls for changing the selected player-owned province's tax policy.
 - Deterministic build settings and no simulation randomness.
 
 ## Current limitations
 
-- No turn progression, economy processing, command handlers, recruitment, movement, taxation controls, rebellion, save/load, AI, or victory conditions yet.
-- Only the Roman polity is marked playable; this has no behavioral effect in Milestone 0.
+- No turn progression, economy processing, recruitment, movement, rebellion, save/load, AI, or victory conditions yet.
+- Only the Roman polity is playable; rival factions remain passive.
 - Geography and political boundaries are intentionally stylized.
 - The UI uses native controls and generated polygons; no final art, accessibility pass, localization, or resolution matrix exists yet.
 

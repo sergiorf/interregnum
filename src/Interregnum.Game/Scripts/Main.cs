@@ -2,6 +2,7 @@ using System.Text;
 using Godot;
 using Interregnum.Core.Domain;
 using Interregnum.Core.Scenarios;
+using Interregnum.Core.Simulation;
 
 namespace Interregnum.Game;
 
@@ -9,7 +10,12 @@ public sealed partial class Main : Control
 {
     private readonly Label _provinceTitle = new();
     private readonly Label _provinceDetails = new();
+    private readonly Label _actionFeedback = new();
+    private readonly Dictionary<TaxRate, Button> _taxButtons = [];
+    private SimulationEngine? _engine;
     private WorldState? _world;
+    private FactionId _playerId;
+    private ProvinceId? _selectedProvinceId;
 
     public override void _Ready()
     {
@@ -17,6 +23,7 @@ public sealed partial class Main : Control
         {
             var definition = LoadScenario("res://Data/gaul-480.json");
             _world = ScenarioLoader.CreateWorld(definition);
+            _engine = new SimulationEngine(_world);
             BuildInterface(definition);
         }
         catch (Exception exception)
@@ -45,6 +52,7 @@ public sealed partial class Main : Control
         AddChild(title);
 
         var playableFaction = _world!.Factions.Values.Single(faction => faction.IsPlayable);
+        _playerId = playableFaction.Id;
         var status = new Label
         {
             Text = $"{playableFaction.Name}    Treasury  {playableFaction.Treasury} solidi    " +
@@ -89,6 +97,25 @@ public sealed partial class Main : Control
         StyleLabel(_provinceDetails, 16);
         panel.AddChild(_provinceDetails);
 
+        var taxHeading = new Label
+        {
+            Text = "Tax policy",
+            Position = new Vector2(22, 458)
+        };
+        StyleLabel(taxHeading, 16, new Color("e7d7af"));
+        panel.AddChild(taxHeading);
+
+        AddTaxButton(panel, TaxRate.Low, 22);
+        AddTaxButton(panel, TaxRate.Normal, 112);
+        AddTaxButton(panel, TaxRate.High, 202);
+
+        _actionFeedback.Text = "Select one of your provinces to set its tax policy.";
+        _actionFeedback.Position = new Vector2(22, 548);
+        _actionFeedback.Size = new Vector2(272, 52);
+        _actionFeedback.AutowrapMode = TextServer.AutowrapMode.WordSmart;
+        StyleLabel(_actionFeedback, 13, new Color("92a0a3"));
+        panel.AddChild(_actionFeedback);
+
         var zoomOut = new Button { Text = "−", Position = new Vector2(22, 610), Size = new Vector2(54, 42) };
         zoomOut.Pressed += map.ZoomOut;
         panel.AddChild(zoomOut);
@@ -111,7 +138,7 @@ public sealed partial class Main : Control
 
         var milestone = new Label
         {
-            Text = "MILESTONE 0\n\nThe map and validated scenario are live.\nTurn actions arrive in Milestone 1.",
+            Text = "MILESTONE 1\n\nTax policy commands are live.\nEnd-turn processing comes next.",
             Position = new Vector2(22, 718)
         };
         StyleLabel(milestone, 14, new Color("92a0a3"));
@@ -120,7 +147,21 @@ public sealed partial class Main : Control
 
     private void ShowProvince(ProvinceDefinition definition)
     {
-        var province = _world!.Provinces[new ProvinceId(definition.Id)];
+        _selectedProvinceId = new ProvinceId(definition.Id);
+        RefreshSelectedProvince();
+
+        var province = _world!.Provinces[_selectedProvinceId.Value];
+        _actionFeedback.Text = province.OwnerId == _playerId
+            ? "Choose Low, Normal, or High taxation for this province."
+            : "Only provinces you control can receive tax orders.";
+        _actionFeedback.AddThemeColorOverride("font_color", new Color("92a0a3"));
+    }
+
+    private void RefreshSelectedProvince()
+    {
+        if (_selectedProvinceId is not { } provinceId) return;
+
+        var province = _world!.Provinces[provinceId];
         var faction = _world.Factions[province.OwnerId];
 
         _provinceTitle.Text = province.Name;
@@ -134,6 +175,41 @@ public sealed partial class Main : Control
             $"Taxation                   {province.TaxRate}\n\n" +
             $"Settlement\n{province.Settlement?.Name ?? "None"}\n\n" +
             $"Neighbors\n{string.Join(", ", province.Neighbors.Select(id => _world.Provinces[id].Name))}";
+
+        foreach (var button in _taxButtons.Values)
+        {
+            button.Disabled = province.OwnerId != _playerId;
+        }
+
+    }
+
+    private void AddTaxButton(Control panel, TaxRate taxRate, float x)
+    {
+        var button = new Button
+        {
+            Text = taxRate.ToString(),
+            Position = new Vector2(x, 492),
+            Size = new Vector2(82, 42),
+            Disabled = true
+        };
+        button.Pressed += () => SetTaxRate(taxRate);
+        _taxButtons.Add(taxRate, button);
+        panel.AddChild(button);
+    }
+
+    private void SetTaxRate(TaxRate taxRate)
+    {
+        if (_selectedProvinceId is not { } provinceId) return;
+
+        var result = _engine!.Execute(new SetProvinceTaxRate(_playerId, provinceId, taxRate));
+        _world = result.State;
+        _actionFeedback.Text = result.Succeeded
+            ? $"Tax policy changed to {taxRate}. Revenue is collected when a turn ends."
+            : result.ErrorMessage ?? $"Command rejected: {result.ErrorCode}.";
+        _actionFeedback.AddThemeColorOverride(
+            "font_color",
+            result.Succeeded ? new Color("9fc59f") : new Color("d6a28f"));
+        RefreshSelectedProvince();
     }
 
     private static ScenarioDefinition LoadScenario(string resourcePath)

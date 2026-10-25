@@ -100,6 +100,8 @@ Write `docs/gameplay-principles.md` and draft `docs/rules-v1.md`. Record unresol
 
 ### M1.1 — Commands, results, atomic transitions, and first tax slice
 
+**Implementation status:** The tax vertical slice is implemented locally as of 2026-10-25: Core command vocabulary, atomic tax transitions, stable results/events, tests, and Godot tax controls. Restore, build, 23 tests, and a two-frame Godot 4.7.2 headless scene launch pass. M1.1 remains open for interactive visual/input verification and the turn-report contract needed by end-turn processing.
+
 Introduce the smallest useful Core command surface, expected to include explicit tax, recruit, move, and end-turn commands; a simulation engine; structured command results; domain events; and turn reports. Exact filenames should follow the simplest local organization.
 
 - Commands include actor identity and validate the active/playable actor and target.

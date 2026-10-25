@@ -57,16 +57,16 @@ Loading is a boundary operation:
 
 Invalid content produces `ScenarioValidationException` with all discovered errors so content authors can repair a file in one pass.
 
-## Command processing (Milestone 1 design)
+## Command processing
 
-The next slice will introduce explicit commands:
+The first Milestone 1 slice introduces the command vocabulary:
 
 - `SetProvinceTaxRate`
 - `RecruitArmy`
 - `MoveArmy`
 - `EndTurn`
 
-A single `SimulationEngine.Execute(GameCommand)` entry point will validate against current state and return a structured `CommandResult` containing success/failure, stable error codes, resulting state, and domain events. An invalid command will never partially update state.
+A single `SimulationEngine.Execute(GameCommand)` entry point validates against current state and returns a structured `CommandResult` containing success/failure, stable error codes, resulting state, and domain events. An invalid command never partially updates state. `SetProvinceTaxRate` is implemented; the other command types currently return `CommandNotAvailable` until their approved work packages implement them.
 
 `EndTurn` will run a fixed ordered pipeline: production, consumption, taxation, military upkeep, administration, loyalty, rebellion, faction stability, then turn advancement. Events from each stage will carry the numbers needed to explain the summary UI. No randomness is planned for the first playable slice.
 

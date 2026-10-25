@@ -1,6 +1,6 @@
 # Milestone 1 rules vocabulary
 
-**Status:** Draft proposed for Foundation F0.2 approval; not yet an implementation contract
+**Status:** The M1.1 tax-command subset is adopted for implementation; economy, rebellion, recruitment, movement, and end-turn recommendations remain draft until their respective reviews
 
 This document defines the minimum vocabulary and timing needed to implement Milestone 1 without hidden defaults. Items labelled **Recommendation** require human approval. Exact economy coefficients, loyalty changes, rebellion thresholds, and stability formulas remain deliberately unresolved until the M1.2/M1.3 rules review.
 

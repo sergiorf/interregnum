@@ -40,6 +40,13 @@ public sealed class WorldState
 
     public IReadOnlyDictionary<ArmyId, Army> Armies { get; }
 
+    internal WorldState WithProvince(Province province)
+    {
+        var provinces = Provinces.ToDictionary();
+        provinces[province.Id] = province;
+        return new WorldState(ScenarioId, Name, StartYear, Turn, Factions, provinces, Armies);
+    }
+
     private static IReadOnlyDictionary<TKey, TValue> Snapshot<TKey, TValue>(
         IReadOnlyDictionary<TKey, TValue> source)
         where TKey : notnull =>

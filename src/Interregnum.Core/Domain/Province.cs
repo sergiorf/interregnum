@@ -44,4 +44,17 @@ public sealed record Province
     public TaxRate TaxRate { get; }
     public Settlement? Settlement { get; }
     public IReadOnlySet<ProvinceId> Neighbors { get; }
+
+    internal Province WithTaxRate(TaxRate taxRate) => new(
+        Id,
+        Name,
+        OwnerId,
+        Population,
+        AgriculturalProduction,
+        TaxRevenue,
+        Loyalty,
+        AdministrativeBurden,
+        taxRate,
+        Settlement,
+        Neighbors);
 }

@@ -1,0 +1,31 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-test:
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v7
+
+      - name: Set up .NET SDK
+        uses: actions/setup-dotnet@v6
+        with:
+          dotnet-version: '10.0.402'
+
+      - name: Restore
+        run: dotnet restore Interregnum.sln
+
+      - name: Build
+        run: dotnet build Interregnum.sln --no-restore
+
+      - name: Test
+        run: dotnet test Interregnum.sln --no-build

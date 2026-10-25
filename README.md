@@ -42,6 +42,8 @@ dotnet test Interregnum.sln --no-build
 
 Core-only development does not require Godot to be running, although restoring the solution downloads the Godot .NET SDK package.
 
+A Windows GitHub Actions workflow runs the same restore, build, and test sequence. See the [foundation verification record](docs/foundation-verification.md) for the latest observed results and the outstanding Godot editor smoke test.
+
 ## Launch the game
 
 Open `src/Interregnum.Game/project.godot` in the Godot 4.7.2 .NET editor and press **F6/F5**, or run:

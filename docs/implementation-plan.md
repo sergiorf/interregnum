@@ -84,6 +84,8 @@ Write `docs/gameplay-principles.md` and draft `docs/rules-v1.md`. Record unresol
 
 ### F0.3 — Harden scenario and state boundaries
 
+**Implementation status:** Complete locally; validation, aliasing, build, and test gates passed on 2026-10-25. Interactive Godot verification remains tracked in `docs/foundation-verification.md`.
+
 - Reject or clearly report unknown fields, invalid enum values, explicit null collections, missing references, duplicate IDs, malformed/non-finite polygon coordinates, and invalid economic ranges.
 - Decide whether syntax/deserialization failures and semantic validation failures share one public error shape; keep errors actionable and aggregate semantic errors where feasible.
 - Enforce the approved playable-faction invariant.

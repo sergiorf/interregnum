@@ -51,8 +51,9 @@ Integer resources are intentional. They keep initial formulas legible, determini
 Loading is a boundary operation:
 
 1. Deserialize JSON with unknown fields rejected and tax rates parsed by name.
-2. Validate required values, unique IDs, ranges, references, friendly army placement, polygons, and symmetric adjacency.
-3. Convert validated definitions into typed domain identifiers and read-only dictionaries.
+2. Report JSON syntax and deserialization failures through the same `ScenarioValidationException` shape used for semantic failures, retaining the original deserialization exception as the inner exception.
+3. Validate required values, explicit null collections, exactly one playable faction, unique IDs, ranges, references, friendly army placement, finite polygons, and symmetric adjacency. Aggregate semantic errors where feasible.
+4. Take defensive snapshots while converting validated definitions into the authoritative world; callers cannot mutate world dictionaries or province neighbor sets through retained backing collections.
 
 Invalid content produces `ScenarioValidationException` with all discovered errors so content authors can repair a file in one pass.
 

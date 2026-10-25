@@ -166,6 +166,8 @@ Turn reports must reconcile opening balance, production, consumption, tax, upkee
 - Add a lightweight Godot session/controller that owns the engine and publishes refreshed snapshots; keep `Main` as composition root.
 - Extract stable panels when useful, without creating a UI framework.
 - Render scenario geometry together with live ownership and condition data.
+- Establish the functional map-rendering stack: geographic ocean and land masks, subdued shaded relief, generalized terrain/land-cover blending, physical rivers and coastlines, then translucent province ownership and gameplay-status overlays.
+- Support bounded cursor-centered zoom, panning, reset controls, and zoom-aware selection. Use level-of-detail rules so labels and terrain decoration remain legible rather than merely scaling every element.
 - Add small Core-owned calculations or queries for tax forecasts, recruitment costs/upkeep, and legal destinations. Do not duplicate formulas in Godot.
 - Show policy, rebellion risk, resource forecasts, rejection messages, and the last turn breakdown.
 - Add an initial pass for keyboard use, readable fonts, and scalable layout.
@@ -277,7 +279,7 @@ Before implementation, approve combat, occupation, legitimacy, campaign, AI-turn
 
 1. Define schema evolution and a practical content-authoring workflow with research notes and attribution.
 2. Expand beyond stylized Gaul only after the 12-province campaign succeeds; make a second campaign strategically different, not merely larger.
-3. Improve map interaction, hierarchy, color readability, tooltips, tutorial, animation, audio, and art direction. Track provenance and licensing for generated assets.
+3. Refine the layered terrain map with reviewed texture families, transitions, rivers, relief, zoom-level detail, ownership readability, tooltips, animation, audio, and a coherent historical-atlas art direction. Track provenance and licensing for source and generated assets.
 4. Complete keyboard navigation, scalable fonts, accessible color cues, appropriate remapping, localization-ready strings, and Windows scaling checks.
 5. Benchmark turns, redraws, and save/load; define save migration policy, privacy-conscious diagnostics, release builds, and a repeatable QA plan.
 6. Decide whether demand justifies mod support. Start with documented scenario JSON; a full mod API remains optional.
@@ -301,6 +303,24 @@ Track named strategies over 10, 20, and later 40 turns. Treat metrics as diagnos
 ### UI and documentation
 
 Every rule needs a visible action or state, a readable effect explanation, a report when it applies, and a tested rejection path. UI forecasts use Core-owned calculations or snapshots.
+
+### Map rendering and terrain
+
+Use a layered province-scale map rather than a tactical tile map or one opaque terrain image:
+
+1. Ocean color or texture, optionally including subdued bathymetry.
+2. A geographic land mask and coastline derived from reviewable map data.
+3. Elevation or shaded-relief raster aligned to the same projection.
+4. Generalized terrain masks that blend a small texture vocabulary such as plains, forest, hills, mountains, and arid land. Prefer channel-packed masks and shader blending over hard-edged stacked images.
+5. Physical rivers, lakes, coastlines, and restrained terrain decoration appropriate to the current zoom level.
+6. Semi-transparent faction, province, selection, rebellion, and other gameplay overlays.
+7. Labels, settlements, armies, controls, and feedback above the geographic layers.
+
+The Godot client owns this presentation pipeline. Terrain remains non-authoritative unless a separately approved rule later gives it mechanical effects; Core must never infer gameplay from pixels, textures, or shaders. Keep geographic source data, scenario borders, and live political state separate so each can be revised independently.
+
+Use real elevation and physical geography where practical, but treat reconstructed land cover for 480 AD as generalized art direction rather than established fact. Record the source, version, extraction process, license or public-domain status, and any generated-art provenance for every committed map asset. Do not show modern political borders in the historical presentation.
+
+M1.5 delivers a readable first pass with working zoom/pan, relief, terrain blending, and ownership overlays. M5 owns final texture quality, transitions, zoom-level decoration, accessibility tuning, performance budgets, and cohesive art direction. Manual Godot checks must cover coastline alignment, seams, label behavior, selection accuracy at every zoom level, and ownership readability over each terrain type.
 
 ### Architecture and complexity budget
 

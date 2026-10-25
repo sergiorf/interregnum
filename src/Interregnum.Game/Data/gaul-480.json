@@ -41,84 +41,84 @@
       "population": 72, "agriculturalProduction": 17, "taxRevenue": 11,
       "loyalty": 63, "administrativeBurden": 4, "taxRate": "Normal",
       "settlementName": "Condate", "neighbors": ["parisii", "aquitania"],
-      "mapPolygon": [{"x":25,"y":35},{"x":208,"y":24},{"x":220,"y":190},{"x":35,"y":180}]
+      "mapPolygon": [{"x":190,"y":185},{"x":245,"y":192},{"x":300,"y":185},{"x":312,"y":240},{"x":305,"y":290},{"x":255,"y":300},{"x":210,"y":295},{"x":190,"y":245}]
     },
     {
       "id": "parisii", "name": "Parisii", "ownerId": "roman-domain",
       "population": 96, "agriculturalProduction": 21, "taxRevenue": 18,
       "loyalty": 76, "administrativeBurden": 5, "taxRate": "Normal",
       "settlementName": "Lutetia", "neighbors": ["armorica", "belgica", "aurelianum"],
-      "mapPolygon": [{"x":208,"y":24},{"x":423,"y":38},{"x":432,"y":186},{"x":220,"y":190}]
+      "mapPolygon": [{"x":300,"y":185},{"x":345,"y":180},{"x":390,"y":185},{"x":380,"y":235},{"x":400,"y":280},{"x":350,"y":275},{"x":305,"y":290},{"x":312,"y":240}]
     },
     {
       "id": "belgica", "name": "Belgica", "ownerId": "frankish-kingdom",
       "population": 84, "agriculturalProduction": 19, "taxRevenue": 14,
       "loyalty": 69, "administrativeBurden": 5, "taxRate": "Normal",
       "settlementName": "Durocortorum", "neighbors": ["parisii", "ripuaria", "burgundia"],
-      "mapPolygon": [{"x":423,"y":38},{"x":632,"y":25},{"x":645,"y":194},{"x":432,"y":186}]
+      "mapPolygon": [{"x":390,"y":185},{"x":430,"y":180},{"x":470,"y":185},{"x":490,"y":235},{"x":480,"y":285},{"x":440,"y":292},{"x":400,"y":280},{"x":380,"y":235}]
     },
     {
       "id": "ripuaria", "name": "Ripuaria", "ownerId": "frankish-kingdom",
       "population": 61, "agriculturalProduction": 14, "taxRevenue": 10,
       "loyalty": 73, "administrativeBurden": 4, "taxRate": "Low",
       "settlementName": "Colonia", "neighbors": ["belgica", "alemannia"],
-      "mapPolygon": [{"x":632,"y":25},{"x":846,"y":44},{"x":838,"y":182},{"x":645,"y":194}]
+      "mapPolygon": [{"x":470,"y":185},{"x":520,"y":188},{"x":560,"y":200},{"x":565,"y":250},{"x":550,"y":300},{"x":515,"y":278},{"x":480,"y":285},{"x":490,"y":235}]
     },
     {
       "id": "aquitania", "name": "Aquitania", "ownerId": "visigothic-kingdom",
       "population": 88, "agriculturalProduction": 25, "taxRevenue": 15,
       "loyalty": 66, "administrativeBurden": 6, "taxRate": "Normal",
       "settlementName": "Burdigala", "neighbors": ["armorica", "aurelianum", "novempopulania"],
-      "mapPolygon": [{"x":35,"y":180},{"x":220,"y":190},{"x":214,"y":375},{"x":22,"y":364}]
+      "mapPolygon": [{"x":210,"y":295},{"x":255,"y":300},{"x":305,"y":290},{"x":295,"y":323},{"x":320,"y":355},{"x":275,"y":342},{"x":230,"y":350},{"x":215,"y":320}]
     },
     {
       "id": "aurelianum", "name": "Aurelianum", "ownerId": "roman-domain",
       "population": 105, "agriculturalProduction": 27, "taxRevenue": 20,
       "loyalty": 79, "administrativeBurden": 5, "taxRate": "Normal",
       "settlementName": "Aurelianum", "neighbors": ["parisii", "aquitania", "burgundia", "narbonensis"],
-      "mapPolygon": [{"x":220,"y":190},{"x":432,"y":186},{"x":425,"y":382},{"x":214,"y":375}]
+      "mapPolygon": [{"x":305,"y":290},{"x":350,"y":275},{"x":400,"y":280},{"x":420,"y":312},{"x":410,"y":345},{"x":365,"y":360},{"x":320,"y":355},{"x":295,"y":323}]
     },
     {
       "id": "burgundia", "name": "Burgundia", "ownerId": "roman-domain",
       "population": 92, "agriculturalProduction": 22, "taxRevenue": 17,
       "loyalty": 58, "administrativeBurden": 7, "taxRate": "High",
       "settlementName": "Lugdunum", "neighbors": ["belgica", "aurelianum", "alemannia", "arvernia"],
-      "mapPolygon": [{"x":432,"y":186},{"x":645,"y":194},{"x":635,"y":370},{"x":425,"y":382}]
+      "mapPolygon": [{"x":400,"y":280},{"x":440,"y":292},{"x":480,"y":285},{"x":465,"y":318},{"x":490,"y":350},{"x":450,"y":338},{"x":410,"y":345},{"x":420,"y":312}]
     },
     {
       "id": "alemannia", "name": "Alemannia", "ownerId": "frankish-kingdom",
       "population": 57, "agriculturalProduction": 13, "taxRevenue": 9,
       "loyalty": 61, "administrativeBurden": 5, "taxRate": "Low",
       "settlementName": null, "neighbors": ["ripuaria", "burgundia", "provence"],
-      "mapPolygon": [{"x":645,"y":194},{"x":838,"y":182},{"x":850,"y":377},{"x":635,"y":370}]
+      "mapPolygon": [{"x":480,"y":285},{"x":515,"y":278},{"x":550,"y":300},{"x":560,"y":330},{"x":545,"y":360},{"x":520,"y":365},{"x":490,"y":350},{"x":465,"y":318}]
     },
     {
       "id": "novempopulania", "name": "Novempopulania", "ownerId": "visigothic-kingdom",
       "population": 64, "agriculturalProduction": 20, "taxRevenue": 10,
       "loyalty": 71, "administrativeBurden": 5, "taxRate": "Normal",
       "settlementName": "Elusa", "neighbors": ["aquitania", "narbonensis"],
-      "mapPolygon": [{"x":22,"y":364},{"x":214,"y":375},{"x":224,"y":552},{"x":38,"y":560}]
+      "mapPolygon": [{"x":230,"y":350},{"x":275,"y":342},{"x":320,"y":355},{"x":340,"y":385},{"x":330,"y":430},{"x":285,"y":435},{"x":195,"y":430},{"x":200,"y":390}]
     },
     {
       "id": "narbonensis", "name": "Narbonensis", "ownerId": "visigothic-kingdom",
       "population": 83, "agriculturalProduction": 23, "taxRevenue": 16,
       "loyalty": 67, "administrativeBurden": 6, "taxRate": "Normal",
       "settlementName": "Tolosa", "neighbors": ["aurelianum", "novempopulania", "arvernia"],
-      "mapPolygon": [{"x":214,"y":375},{"x":425,"y":382},{"x":436,"y":548},{"x":224,"y":552}]
+      "mapPolygon": [{"x":320,"y":355},{"x":365,"y":360},{"x":410,"y":345},{"x":395,"y":380},{"x":420,"y":430},{"x":375,"y":435},{"x":330,"y":430},{"x":340,"y":385}]
     },
     {
       "id": "arvernia", "name": "Arvernia", "ownerId": "roman-domain",
       "population": 77, "agriculturalProduction": 18, "taxRevenue": 13,
       "loyalty": 55, "administrativeBurden": 7, "taxRate": "Normal",
       "settlementName": "Augustonemetum", "neighbors": ["burgundia", "narbonensis", "provence"],
-      "mapPolygon": [{"x":425,"y":382},{"x":635,"y":370},{"x":646,"y":560},{"x":436,"y":548}]
+      "mapPolygon": [{"x":410,"y":345},{"x":450,"y":338},{"x":490,"y":350},{"x":512,"y":385},{"x":500,"y":430},{"x":460,"y":435},{"x":420,"y":430},{"x":395,"y":380}]
     },
     {
       "id": "provence", "name": "Provence", "ownerId": "visigothic-kingdom",
       "population": 99, "agriculturalProduction": 16, "taxRevenue": 21,
       "loyalty": 60, "administrativeBurden": 8, "taxRate": "High",
       "settlementName": "Arelate", "neighbors": ["alemannia", "arvernia"],
-      "mapPolygon": [{"x":635,"y":370},{"x":850,"y":377},{"x":840,"y":555},{"x":646,"y":560}]
+      "mapPolygon": [{"x":490,"y":350},{"x":520,"y":365},{"x":545,"y":360},{"x":565,"y":390},{"x":560,"y":430},{"x":530,"y":435},{"x":500,"y":430},{"x":512,"y":385}]
     }
   ],
   "armies": [

@@ -86,7 +86,7 @@ The current scene is intentionally code-composed to keep the first UI review com
 ## Risks and assumptions
 
 - Godot/C# exports should be tested early on the commercial target machines; editor compilation is not equivalent to a packaged Windows export.
-- The JSON document currently combines simulation setup and map geometry. This is convenient for the slice, but a historical map pipeline may later split visual metadata from scenario state.
+- The JSON document currently combines simulation setup and fictionalized interactive province geometry. Presentation-only surrounding geography comes from a reduced Natural Earth 1:50m dataset and is projected by the Godot client; province cells are clipped to its mainland contour so the campaign follows the physical coast. This is convenient for the slice, but a historical map pipeline may later move both into reviewed visual metadata.
 - Province polygons are authored in viewport coordinates and assume a stylized fixed map. Camera navigation and scalable map authoring are future work.
 - Immutable snapshots favor correctness over allocation efficiency. Measure real turn-processing costs before considering mutable internals or ECS-style storage.
 - Historic names, borders, demographics, and balance values are prototypes and need research and design review.

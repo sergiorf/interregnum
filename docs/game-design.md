@@ -20,7 +20,7 @@ For the first playable slice, the intended loop is:
 
 The foundation provides content, not a simulation turn:
 
-- A 12-province stylized Gaul map.
+- A 12-province stylized Gaul campaign shown within a broader Western Europe map.
 - Roman, Visigothic, and Frankish factions.
 - Province ownership, economy inputs, loyalty, administration, settlements, and adjacency.
 - Starting faction resources and armies.

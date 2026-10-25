@@ -57,15 +57,16 @@ public sealed partial class Main : Control
         var mapFrame = new Panel
         {
             Position = new Vector2(24, 88),
-            Size = new Vector2(910, 606)
+            Size = new Vector2(1056, 788)
         };
         AddChild(mapFrame);
 
         var map = new ProvinceMap
         {
             Position = new Vector2(18, 12),
-            Size = new Vector2(874, 580),
-            MouseFilter = MouseFilterEnum.Stop
+            Size = new Vector2(1020, 760),
+            MouseFilter = MouseFilterEnum.Stop,
+            ClipContents = true
         };
         map.LoadScenario(definition);
         map.ProvinceSelected += ShowProvince;
@@ -73,8 +74,8 @@ public sealed partial class Main : Control
 
         var panel = new Panel
         {
-            Position = new Vector2(954, 88),
-            Size = new Vector2(302, 606)
+            Position = new Vector2(1100, 88),
+            Size = new Vector2(316, 788)
         };
         AddChild(panel);
 
@@ -88,10 +89,30 @@ public sealed partial class Main : Control
         StyleLabel(_provinceDetails, 16);
         panel.AddChild(_provinceDetails);
 
+        var zoomOut = new Button { Text = "−", Position = new Vector2(22, 610), Size = new Vector2(54, 42) };
+        zoomOut.Pressed += map.ZoomOut;
+        panel.AddChild(zoomOut);
+
+        var resetView = new Button { Text = "Reset view", Position = new Vector2(84, 610), Size = new Vector2(126, 42) };
+        resetView.Pressed += map.ResetView;
+        panel.AddChild(resetView);
+
+        var zoomIn = new Button { Text = "+", Position = new Vector2(218, 610), Size = new Vector2(54, 42) };
+        zoomIn.Pressed += map.ZoomIn;
+        panel.AddChild(zoomIn);
+
+        var mapHelp = new Label
+        {
+            Text = "Mouse wheel to zoom\nMiddle-drag to pan",
+            Position = new Vector2(22, 664)
+        };
+        StyleLabel(mapHelp, 13, new Color("92a0a3"));
+        panel.AddChild(mapHelp);
+
         var milestone = new Label
         {
             Text = "MILESTONE 0\n\nThe map and validated scenario are live.\nTurn actions arrive in Milestone 1.",
-            Position = new Vector2(22, 440)
+            Position = new Vector2(22, 718)
         };
         StyleLabel(milestone, 14, new Color("92a0a3"));
         panel.AddChild(milestone);

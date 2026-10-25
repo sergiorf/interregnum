@@ -8,7 +8,7 @@
 
 Interregnum is a single-player, turn-based historical strategy game set during the fragmentation of the Western Roman Empire. Its central idea is that conquering territory is easier than governing it: growth creates wealth and strategic depth, but also administrative cost, fragile loyalties, and instability.
 
-This repository currently contains **Milestone 0**, the project foundation. It loads and validates a fictionalized Gaul scenario for 480 AD and presents its 12-province map in Godot. The turn simulation and player commands are deliberately reserved for Milestone 1.
+This repository currently contains **Milestone 0**, the project foundation. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD and presents it in a stylized Western Europe setting in Godot. The turn simulation and player commands are deliberately reserved for Milestone 1.
 
 ## Project structure
 
@@ -59,7 +59,7 @@ The executable name may be `Godot_v4.7.2-stable_mono_win64.exe` if the downloade
 - Portable .NET 10 domain model for factions, provinces, settlements, armies, and world state.
 - Strict, human-readable JSON scenario loading with actionable validation failures.
 - Fictionalized Gaul, 480 AD scenario with three factions and 12 connected provinces.
-- Stylized native Godot 2D map with faction colors, boundaries, province selection, and an inspection panel.
+- Natural Earth-based Western Europe context map with a selectable, fictionalized 12-province Gaul campaign, seamless shared province boundaries, zoom/pan controls, faction colors, and an inspection panel.
 - xUnit coverage for loading, ownership, adjacency, and invalid scenario rejection.
 - Deterministic build settings and no simulation randomness.
 

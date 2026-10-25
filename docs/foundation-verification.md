@@ -20,7 +20,7 @@ The build completed with zero warnings and zero errors. The test run passed all 
 
 `.github/workflows/ci.yml` mirrors the local restore, build, and test sequence on `windows-latest`. It explicitly installs .NET SDK 10.0.402, matching `global.json`.
 
-The workflow has not yet run on GitHub. Its first successful GitHub Actions run remains part of the F0.1 acceptance gate.
+GitHub Actions run `40219674221` completed successfully on 2026-10-25 in 51 seconds for commit `0c1da54` (`CI script.`). The run exercised the workflow's restore, build, and test sequence on `windows-latest`.
 
 ## Godot editor smoke test
 

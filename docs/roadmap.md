@@ -11,18 +11,29 @@ This roadmap describes direction, not delivery commitments. A milestone begins o
 - Selectable, inspectable province map.
 - Test, build, architecture, and design documentation.
 
-## Milestone 1 — Playable Gaul simulation
+## Foundation hardening gate
+
+- Verify reproducible local and Windows CI restore, build, and test workflows plus an honest Godot editor smoke test.
+- Freeze the minimum rules vocabulary, turn/session model, timing semantics, and player experience principles.
+- Harden scenario validation and defensive world snapshots before simulation begins.
+
+This gate stabilizes the already implemented Milestone 0; it is not a new gameplay milestone.
+
+## Milestone 1 — Playable Gaul governance simulation
 
 - Explicit validated tax, recruit, move, and end-turn commands.
 - Deterministic food, tax, military, administration, loyalty, rebellion, and stability processing.
 - Player controls, action feedback, and numerical turn summary.
+- Core-owned forecasts, live map state, basic keyboard/readability support, and a lightweight 15-turn survival assessment.
+- Named headless balance strategies and recorded 10–20-turn human playtests.
 - Tests for all rules, rejection paths, end-turn ordering, recovery, and deterministic replay.
 
-## Milestone 2 — Territorial conflict and simple AI
+## Milestone 2 — First complete game
 
-- Hostile movement, resolved combat, ownership transfer, and occupation pressure.
+- **Conflict sandbox gate:** versioned save/load, hostile movement, deterministic combat, ownership transfer, occupation pressure, and an initial legitimacy mechanic.
+- **Complete campaign gate:** transparent rival policies, defeat/victory conditions, campaign summaries, and restart/reload flows.
 - A small deterministic rival policy able to defend and pursue limited objectives.
-- Defeat/victory conditions suitable for the scenario.
+- A packaged Windows build tested outside the development editor and a small external playtest.
 
 ## Milestone 3 — Deeper economy and population
 
@@ -31,11 +42,13 @@ This roadmap describes direction, not delivery commitments. A milestone begins o
 
 ## Milestone 4 — Diplomacy and political systems
 
-- Treaties, legitimacy, succession, leading figures, internal factions, culture, and religion.
+- Treaties, deeper legitimacy, succession, leading figures, internal factions, culture, and religion.
 - Political consequences integrated with expansion and provincial government.
 
 ## Milestone 5 — Content, balance, and presentation
 
 - A researched Western Europe map and expanded scenario content.
-- Save/load, accessibility, localization readiness, onboarding, audio, art direction, animation, and performance work.
+- Accessibility completion, localization readiness, onboarding, audio, art direction, animation, and performance work.
 - Evaluate a supported modding surface after data formats stabilize.
+
+See [the implementation plan](implementation-plan.md) for work packages, acceptance criteria, cross-cutting tracks, and decisions that require approval.

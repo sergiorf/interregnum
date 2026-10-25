@@ -8,6 +8,10 @@ config_version=5
 config/name="Interregnum"
 run/main_scene="res://Scenes/Main.tscn"
 config/features=PackedStringArray("4.7", "C#")
+config/icon="res://Assets/interregnum.png"
+boot_splash/image="res://Assets/interregnum.png"
+boot_splash/bg_color=Color(0.035, 0.047, 0.055, 1)
+boot_splash/fullsize=false
 
 [display]
 

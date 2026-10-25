@@ -1,5 +1,9 @@
 # Interregnum
 
+<p align="center">
+  <img src="src/Interregnum.Game/Assets/interregnum.png" alt="Interregnum Roman eagle emblem" width="320">
+</p>
+
 **Build a kingdom from the ruins of Rome.**
 
 Interregnum is a single-player, turn-based historical strategy game set during the fragmentation of the Western Roman Empire. Its central idea is that conquering territory is easier than governing it: growth creates wealth and strategic depth, but also administrative cost, fragile loyalties, and instability.

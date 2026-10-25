@@ -14,6 +14,7 @@ Favor a small, understandable, playable game over speculative frameworks or broa
 - `docs/architecture.md` — architectural boundaries and simulation contracts.
 - `docs/game-design.md` — gameplay goals and intentional simplifications.
 - `docs/roadmap.md` — milestone scope and sequencing.
+- `docs/implementation-plan.md` — current work packages, gates, and acceptance criteria.
 
 Treat these as the source of truth. If implementation and documentation conflict, explain the discrepancy rather than silently changing the design.
 
@@ -55,6 +56,13 @@ For Milestone 1:
 4. Add or update tests for domain behavior, invalid inputs, boundary cases, and regression risks. For turn logic, test ordering, arithmetic, rebellion/recovery, and deterministic replay.
 5. Run the applicable checks. Never claim a build, test, or manual Godot run succeeded unless it actually ran.
 6. Summarize what changed, how it was validated, remaining risks, and any design decision that needs review.
+
+## Collaboration and pushback
+
+- Do not silently guess when a requirement is unclear, contradictory, historically questionable, or likely to undermine the design thesis or architecture. Explain the ambiguity or concern and ask for clarification before making a consequential choice.
+- Push back respectfully when you disagree with a requested design or implementation approach. Use concrete evidence from the repository, approved rules, player outcome, complexity cost, or testability; propose the smallest viable alternative.
+- Distinguish factual conflicts and architectural violations from taste or balance judgment. Clearly label assumptions, recommendations, and unapproved formulas.
+- Make safe, reversible local assumptions when they do not materially change behavior or scope, and state them in the handoff. Do not use minor ambiguity as a reason to stall useful work.
 
 ## Verification commands
 

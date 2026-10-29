@@ -61,7 +61,8 @@ public static partial class ScenarioLoader
                 item.AgriculturalProduction, item.TaxRevenue, item.Loyalty, item.AdministrativeBurden,
                 item.TaxRate,
                 item.SettlementName is null ? null : new Settlement(item.SettlementName),
-                item.Neighbors!.Select(id => new ProvinceId(id)).ToHashSet()));
+                item.Neighbors!.Select(id => new ProvinceId(id)).ToHashSet(),
+                item.IsRebelling));
 
         var armies = definition.Armies!.ToDictionary(
             item => new ArmyId(item.Id),

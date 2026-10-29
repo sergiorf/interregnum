@@ -6,6 +6,9 @@ public sealed record Settlement(string Name);
 
 public sealed record Province
 {
+    public const int RebellionThreshold = 30;
+    public const int RecoveryThreshold = 45;
+
     public Province(
         ProvinceId id,
         string name,
@@ -17,7 +20,8 @@ public sealed record Province
         int administrativeBurden,
         TaxRate taxRate,
         Settlement? settlement,
-        IReadOnlySet<ProvinceId> neighbors)
+        IReadOnlySet<ProvinceId> neighbors,
+        bool isRebelling = false)
     {
         ArgumentNullException.ThrowIfNull(neighbors);
         Id = id;
@@ -31,6 +35,7 @@ public sealed record Province
         TaxRate = taxRate;
         Settlement = settlement;
         Neighbors = neighbors.ToFrozenSet();
+        IsRebelling = isRebelling;
     }
 
     public ProvinceId Id { get; }
@@ -44,6 +49,8 @@ public sealed record Province
     public TaxRate TaxRate { get; }
     public Settlement? Settlement { get; }
     public IReadOnlySet<ProvinceId> Neighbors { get; }
+    public bool IsRebelling { get; }
+    public bool IsAtRisk => !IsRebelling && Loyalty <= RecoveryThreshold;
 
     internal Province WithTaxRate(TaxRate taxRate) => new(
         Id,
@@ -56,5 +63,20 @@ public sealed record Province
         AdministrativeBurden,
         taxRate,
         Settlement,
-        Neighbors);
+        Neighbors,
+        IsRebelling);
+
+    internal Province WithTurnOutcome(int loyalty, bool isRebelling) => new(
+        Id,
+        Name,
+        OwnerId,
+        Population,
+        AgriculturalProduction,
+        TaxRevenue,
+        loyalty,
+        AdministrativeBurden,
+        TaxRate,
+        Settlement,
+        Neighbors,
+        isRebelling);
 }

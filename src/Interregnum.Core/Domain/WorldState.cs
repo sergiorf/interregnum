@@ -47,10 +47,11 @@ public sealed class WorldState
         return new WorldState(ScenarioId, Name, StartYear, Turn, Factions, provinces, Armies);
     }
 
-    internal WorldState WithFactionsAndTurn(
+    internal WorldState WithTurnOutcome(
         IReadOnlyDictionary<FactionId, Faction> factions,
+        IReadOnlyDictionary<ProvinceId, Province> provinces,
         int turn) =>
-        new(ScenarioId, Name, StartYear, turn, factions, Provinces, Armies);
+        new(ScenarioId, Name, StartYear, turn, factions, provinces, Armies);
 
     private static IReadOnlyDictionary<TKey, TValue> Snapshot<TKey, TValue>(
         IReadOnlyDictionary<TKey, TValue> source)

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Godot;
+using Interregnum.Core.Domain;
 using Interregnum.Core.Scenarios;
 
 namespace Interregnum.Game;
@@ -9,21 +10,39 @@ public sealed partial class ProvinceMap : Control
     private const float DesignWidth = 874f;
     private const float DesignHeight = 580f;
     private const float MinimumZoom = 1f;
-    private const float MaximumZoom = 3.5f;
-    private static readonly Color OceanColor = new("17262b");
-    private static readonly Color LandColor = new("3a4038");
-    private static readonly Color ContextLabelColor = new(0.62f, 0.64f, 0.57f, 0.72f);
+    private const float MaximumZoom = 6f;
+    private const float DetailedLabelsZoom = 1.7f;
+    private const float ArmyDetailZoom = 2.35f;
 
     private const double MinimumLongitude = -12d;
     private const double MaximumLongitude = 20d;
     private const double MinimumLatitude = 35d;
     private const double MaximumLatitude = 61d;
 
+    private static readonly Color OceanColor = new("17262b");
+    private static readonly Color FallbackLandColor = new("59604f");
+    private static readonly Color ContextLabelColor = new(0.72f, 0.72f, 0.64f, 0.68f);
+    private static readonly Color RiverColor = new(0.26f, 0.46f, 0.52f, 0.85f);
+
+    private static readonly (string Name, (double Longitude, double Latitude)[] Points)[] Rivers =
+    [
+        ("Rhenus", [(8.2d, 47.6d), (7.8d, 48.6d), (7.6d, 49.5d), (7.3d, 50.3d), (6.5d, 51.2d), (5.9d, 51.8d), (4.8d, 52d)]),
+        ("Rhodanus", [(6.1d, 46.2d), (5.2d, 45.6d), (4.8d, 44.9d), (4.8d, 43.7d)]),
+        ("Liger", [(4d, 44.9d), (3d, 46d), (1.5d, 47d), (-0.5d, 47.3d), (-2.2d, 47.2d)]),
+        ("Sequana", [(4.5d, 47.9d), (3.2d, 48.4d), (2.3d, 48.85d), (1d, 49.3d), (0.1d, 49.45d)]),
+        ("Garumna", [(1.5d, 42.8d), (1.2d, 43.6d), (0.2d, 44.1d), (-0.6d, 44.5d), (-1.1d, 45d)])
+    ];
+
     private readonly Dictionary<string, Color> _factionColors = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, string> _ownerByProvinceId = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, int> _armyStrengthByProvinceId = new(StringComparer.Ordinal);
     private readonly List<Vector2[]> _contextLandPolygons = [];
     private readonly List<Vector2[]> _gaulLandCandidates = [];
     private readonly Dictionary<string, IReadOnlyList<Vector2[]>> _provincePolygons = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _rebellingProvinceIds = new(StringComparer.Ordinal);
+    private readonly HashSet<string> _atRiskProvinceIds = new(StringComparer.Ordinal);
     private IReadOnlyList<ProvinceDefinition> _provinces = [];
+    private Texture2D? _terrainTexture;
     private string? _selectedId;
     private Vector2 _pan;
     private float _zoom = MinimumZoom;
@@ -33,15 +52,61 @@ public sealed partial class ProvinceMap : Control
 
     public void LoadScenario(ScenarioDefinition scenario)
     {
+        ArgumentNullException.ThrowIfNull(scenario);
         LoadContextGeography("res://Data/western-europe-land.geojson");
+        _terrainTexture = LoadTexture("res://Assets/western-europe-terrain.png");
         _provinces = scenario.Provinces;
         _factionColors.Clear();
+        _ownerByProvinceId.Clear();
         foreach (var faction in scenario.Factions)
         {
             _factionColors[faction.Id] = Color.FromHtml(faction.Color);
         }
 
+        foreach (var province in scenario.Provinces)
+        {
+            _ownerByProvinceId[province.Id] = province.OwnerId;
+        }
+
         BuildProvincePolygons();
+        QueueRedraw();
+    }
+
+    public void ApplyWorldState(WorldState world)
+    {
+        ArgumentNullException.ThrowIfNull(world);
+        _ownerByProvinceId.Clear();
+        _rebellingProvinceIds.Clear();
+        _atRiskProvinceIds.Clear();
+        _armyStrengthByProvinceId.Clear();
+        foreach (var province in world.Provinces.Values)
+        {
+            _ownerByProvinceId[province.Id.Value] = province.OwnerId.Value;
+            if (province.IsRebelling)
+            {
+                _rebellingProvinceIds.Add(province.Id.Value);
+            }
+            else if (province.IsAtRisk)
+            {
+                _atRiskProvinceIds.Add(province.Id.Value);
+            }
+        }
+
+        foreach (var army in world.Armies.Values)
+        {
+            _armyStrengthByProvinceId[army.ProvinceId.Value] =
+                _armyStrengthByProvinceId.GetValueOrDefault(army.ProvinceId.Value) + army.Strength;
+        }
+
+        QueueRedraw();
+    }
+
+    public override void _Notification(int what)
+    {
+        if (what != NotificationResized || Size.X <= 0f || Size.Y <= 0f) return;
+
+        BuildProvincePolygons();
+        ClampPan();
         QueueRedraw();
     }
 
@@ -49,6 +114,8 @@ public sealed partial class ProvinceMap : Control
     {
         if (inputEvent is InputEventMouseButton mouseButton)
         {
+            if (mouseButton.Pressed) GrabFocus();
+
             if (mouseButton.ButtonIndex == MouseButton.WheelUp && mouseButton.Pressed)
             {
                 ZoomAt(mouseButton.Position, 1.2f);
@@ -79,9 +146,48 @@ public sealed partial class ProvinceMap : Control
 
         if (inputEvent is InputEventMouseMotion mouseMotion && _isPanning)
         {
-            _pan += mouseMotion.Relative;
-            ClampPan();
-            QueueRedraw();
+            PanBy(mouseMotion.Relative);
+            AcceptEvent();
+            return;
+        }
+
+        if (inputEvent is InputEventKey key && key.Pressed && !key.Echo)
+        {
+            switch (key.Keycode)
+            {
+                case Key.Plus:
+                case Key.Equal:
+                case Key.KpAdd:
+                    ZoomIn();
+                    break;
+                case Key.Minus:
+                case Key.KpSubtract:
+                    ZoomOut();
+                    break;
+                case Key.Key0:
+                case Key.Home:
+                    ResetView();
+                    break;
+                case Key.Left:
+                case Key.A:
+                    PanBy(new Vector2(48f, 0f));
+                    break;
+                case Key.Right:
+                case Key.D:
+                    PanBy(new Vector2(-48f, 0f));
+                    break;
+                case Key.Up:
+                case Key.W:
+                    PanBy(new Vector2(0f, 48f));
+                    break;
+                case Key.Down:
+                case Key.S:
+                    PanBy(new Vector2(0f, -48f));
+                    break;
+                default:
+                    return;
+            }
+
             AcceptEvent();
         }
     }
@@ -97,11 +203,214 @@ public sealed partial class ProvinceMap : Control
         QueueRedraw();
     }
 
+    public override void _Draw()
+    {
+        DrawOcean();
+        DrawSetTransform(_pan, 0f, new Vector2(_zoom, _zoom));
+        DrawContextGeography();
+        DrawRivers();
+        DrawProvinceOverlays();
+        DrawSetTransform(Vector2.Zero, 0f, Vector2.One);
+        DrawMapLabelsAndMarkers();
+        DrawMapChrome();
+    }
+
+    private void DrawOcean()
+    {
+        DrawRect(new Rect2(Vector2.Zero, Size), OceanColor);
+        const int bands = 9;
+        for (var index = 0; index < bands; index++)
+        {
+            var y = Size.Y * index / bands;
+            var color = index % 2 == 0
+                ? new Color(0.08f, 0.16f, 0.18f, 0.1f)
+                : new Color(0.02f, 0.07f, 0.09f, 0.08f);
+            DrawRect(new Rect2(0f, y, Size.X, Size.Y / bands), color);
+        }
+    }
+
+    private void DrawContextGeography()
+    {
+        if (_terrainTexture is not null)
+        {
+            DrawTextureRect(_terrainTexture, new Rect2(Vector2.Zero, Size), false);
+            return;
+        }
+
+        foreach (var normalizedPolygon in _contextLandPolygons)
+        {
+            var polygon = normalizedPolygon.Select(ToMapPoint).ToArray();
+            DrawColoredPolygon(polygon, FallbackLandColor);
+        }
+    }
+
+    private void DrawRivers()
+    {
+        foreach (var (_, river) in Rivers)
+        {
+            var points = river.Select(point => Project(point.Longitude, point.Latitude)).ToArray();
+            DrawPolyline(points, new Color(0.06f, 0.12f, 0.14f, 0.55f), 3.2f / _zoom, true);
+            DrawPolyline(points, RiverColor, 1.35f / _zoom, true);
+        }
+    }
+
+    private void DrawProvinceOverlays()
+    {
+        foreach (var province in _provinces)
+        {
+            if (!_provincePolygons.TryGetValue(province.Id, out var polygons)) continue;
+
+            var ownerId = _ownerByProvinceId.GetValueOrDefault(province.Id, province.OwnerId);
+            var factionColor = _factionColors.GetValueOrDefault(ownerId, Colors.DimGray);
+            var ownershipTint = new Color(factionColor.R, factionColor.G, factionColor.B, 0.24f);
+            var isSelected = string.Equals(_selectedId, province.Id, StringComparison.Ordinal);
+            var isRebelling = _rebellingProvinceIds.Contains(province.Id);
+            var isAtRisk = _atRiskProvinceIds.Contains(province.Id);
+            var border = isSelected
+                ? new Color("f3d57b")
+                : isRebelling
+                    ? new Color("df735d")
+                    : isAtRisk
+                        ? new Color("d5aa60")
+                        : new Color(0.11f, 0.13f, 0.12f, 0.66f);
+            var screenWidth = isSelected ? 3.2f : isRebelling || isAtRisk ? 2.2f : 1.15f;
+
+            foreach (var polygon in polygons)
+            {
+                DrawColoredPolygon(polygon, ownershipTint);
+                if (isRebelling)
+                {
+                    DrawColoredPolygon(polygon, new Color(0.62f, 0.1f, 0.06f, 0.3f));
+                }
+                else if (isAtRisk)
+                {
+                    DrawColoredPolygon(polygon, new Color(0.61f, 0.4f, 0.07f, 0.17f));
+                }
+
+                DrawPolyline([.. polygon, polygon[0]], border, screenWidth / _zoom, true);
+            }
+        }
+    }
+
+    private void DrawMapLabelsAndMarkers()
+    {
+        foreach (var province in _provinces)
+        {
+            if (!_provincePolygons.TryGetValue(province.Id, out var polygons) || polygons.Count == 0) continue;
+
+            var labelPolygon = polygons.MaxBy(PolygonArea)!;
+            var center = MapToScreen(Centroid(labelPolygon));
+            if (!new Rect2(Vector2.Zero, Size).HasPoint(center)) continue;
+
+            var label = _zoom < DetailedLabelsZoom ? Abbreviate(province.Name) : province.Name;
+            var labelWidth = _zoom < DetailedLabelsZoom ? 104f : 150f;
+            var isSelected = string.Equals(_selectedId, province.Id, StringComparison.Ordinal);
+            var labelColor = isSelected ? new Color("ffe49a") : new Color(0.94f, 0.94f, 0.88f, 0.94f);
+            DrawString(
+                ThemeDB.FallbackFont,
+                center + new Vector2(-labelWidth / 2f, 5f),
+                label,
+                HorizontalAlignment.Center,
+                labelWidth,
+                14,
+                labelColor);
+
+            if (_zoom >= DetailedLabelsZoom && province.SettlementName is { Length: > 0 } settlement)
+            {
+                var marker = center + new Vector2(0f, 15f);
+                DrawCircle(marker, 3.2f, new Color("e3c77f"));
+                DrawString(
+                    ThemeDB.FallbackFont,
+                    marker + new Vector2(-70f, 16f),
+                    settlement,
+                    HorizontalAlignment.Center,
+                    140f,
+                    11,
+                    new Color(0.87f, 0.82f, 0.68f, 0.88f));
+            }
+
+            if (_zoom >= ArmyDetailZoom && _armyStrengthByProvinceId.TryGetValue(province.Id, out var strength))
+            {
+                var marker = center + new Vector2(22f, -19f);
+                DrawCircle(marker, 9f, new Color(0.1f, 0.12f, 0.11f, 0.92f));
+                DrawCircle(marker, 7f, new Color("b89654"));
+                DrawString(
+                    ThemeDB.FallbackFont,
+                    marker + new Vector2(-12f, 4f),
+                    strength.ToString(),
+                    HorizontalAlignment.Center,
+                    24f,
+                    10,
+                    Colors.White);
+            }
+        }
+
+        if (_zoom < DetailedLabelsZoom) return;
+
+        foreach (var (name, river) in Rivers)
+        {
+            var midpoint = river[river.Length / 2];
+            var position = MapToScreen(Project(midpoint.Longitude, midpoint.Latitude));
+            if (!new Rect2(Vector2.Zero, Size).HasPoint(position)) continue;
+
+            DrawString(
+                ThemeDB.FallbackFont,
+                position,
+                name,
+                HorizontalAlignment.Left,
+                -1f,
+                10,
+                new Color(0.52f, 0.72f, 0.76f, 0.78f));
+        }
+    }
+
+    private void DrawMapChrome()
+    {
+        DrawString(
+            ThemeDB.FallbackFont,
+            new Vector2(14f, 24f),
+            "WESTERN EUROPE  -  480 AD",
+            HorizontalAlignment.Left,
+            -1f,
+            13,
+            new Color("c9bb96"));
+
+        if (_zoom <= 1.3f)
+        {
+            DrawContextLabel("BRITANNIA", ProjectToScreen(-4.5d, 55d));
+            DrawContextLabel("HISPANIA", ProjectToScreen(-4.5d, 39.5d));
+            DrawContextLabel("GERMANIA", ProjectToScreen(10d, 51d));
+            DrawContextLabel("ITALIA", ProjectToScreen(12d, 42d));
+            DrawContextLabel("AFRICA", ProjectToScreen(2d, 36.2d));
+            DrawContextLabel("ATLANTIC", ProjectToScreen(-11.5d, 47d));
+            DrawContextLabel("MARE INTERNUM", ProjectToScreen(7d, 37.4d));
+        }
+
+        DrawString(
+            ThemeDB.FallbackFont,
+            new Vector2(Mathf.Max(12f, Size.X - 229f), Size.Y - 10f),
+            $"Natural Earth coastline  |  Zoom {_zoom:0.0}x",
+            HorizontalAlignment.Left,
+            -1f,
+            9,
+            new Color(0.7f, 0.72f, 0.64f, 0.62f));
+    }
+
+    private void DrawContextLabel(string text, Vector2 position)
+    {
+        if (!new Rect2(Vector2.Zero, Size).HasPoint(position)) return;
+        DrawString(ThemeDB.FallbackFont, position, text, HorizontalAlignment.Left, -1f, 11, ContextLabelColor);
+    }
+
     private void SelectProvince(Vector2 mapPosition)
     {
         foreach (var province in _provinces.Reverse())
         {
-            if (!_provincePolygons[province.Id].Any(polygon => ContainsPoint(polygon, mapPosition))) continue;
+            if (!_provincePolygons.TryGetValue(province.Id, out var polygons)
+                || !polygons.Any(polygon => ContainsPoint(polygon, mapPosition)))
+            {
+                continue;
+            }
 
             _selectedId = province.Id;
             ProvinceSelected?.Invoke(province);
@@ -110,62 +419,6 @@ public sealed partial class ProvinceMap : Control
             return;
         }
     }
-
-    public override void _Draw()
-    {
-        DrawSetTransform(_pan, 0f, new Vector2(_zoom, _zoom));
-        DrawRect(new Rect2(Vector2.Zero, Size), OceanColor);
-        DrawContextGeography();
-
-        foreach (var province in _provinces)
-        {
-            var color = _factionColors.GetValueOrDefault(province.OwnerId, Colors.DimGray);
-            var border = string.Equals(_selectedId, province.Id, StringComparison.Ordinal)
-                ? new Color("f3d57b")
-                : new Color(0.09f, 0.11f, 0.10f, 0.92f);
-            var width = string.Equals(_selectedId, province.Id, StringComparison.Ordinal) ? 5f : 2f;
-
-            foreach (var polygon in _provincePolygons[province.Id])
-            {
-                DrawColoredPolygon(polygon, color.Darkened(0.18f));
-                DrawPolyline([.. polygon, polygon[0]], border, width, true);
-            }
-
-            var labelPolygon = _provincePolygons[province.Id].MaxBy(PolygonArea)!;
-            var center = labelPolygon.Aggregate(Vector2.Zero, (sum, point) => sum + point) / labelPolygon.Length;
-            DrawString(ThemeDB.FallbackFont, center + new Vector2(-70, 5), province.Name,
-                HorizontalAlignment.Center, 140, 14, Colors.White);
-        }
-
-        DrawString(ThemeDB.FallbackFont, new Vector2(14, 25), "WESTERN EUROPE  •  480 AD",
-            HorizontalAlignment.Left, -1, 13, new Color("c9bb96"));
-        DrawSetTransform(Vector2.Zero);
-    }
-
-    private void DrawContextGeography()
-    {
-        foreach (var normalizedPolygon in _contextLandPolygons)
-        {
-            var polygon = normalizedPolygon
-                .Select(point => new Vector2(point.X * Size.X, point.Y * Size.Y))
-                .ToArray();
-            DrawColoredPolygon(polygon, LandColor);
-        }
-
-        DrawContextLabel("BRITANNIA", Project(-4.5d, 55d));
-        DrawContextLabel("HISPANIA", Project(-4.5d, 39.5d));
-        DrawContextLabel("GERMANIA", Project(10d, 51d));
-        DrawContextLabel("ITALIA", Project(12d, 42d));
-        DrawContextLabel("AFRICA", Project(2d, 36.2d));
-        DrawContextLabel("ATLANTIC", Project(-11.5d, 47d));
-        DrawContextLabel("MARE INTERNUM", Project(7d, 37.4d));
-        DrawString(ThemeDB.FallbackFont, new Vector2(Size.X - 218, Size.Y - 8),
-            "Coastline: Natural Earth • public domain", HorizontalAlignment.Left, -1, 9,
-            new Color(0.62f, 0.64f, 0.57f, 0.55f));
-    }
-
-    private void DrawContextLabel(string text, Vector2 position) =>
-        DrawString(ThemeDB.FallbackFont, position, text, HorizontalAlignment.Left, -1, 11, ContextLabelColor);
 
     private void LoadContextGeography(string resourcePath)
     {
@@ -201,6 +454,24 @@ public sealed partial class ProvinceMap : Control
         }
     }
 
+    private static Texture2D? LoadTexture(string resourcePath)
+    {
+        if (ResourceLoader.Exists(resourcePath))
+        {
+            return GD.Load<Texture2D>(resourcePath);
+        }
+
+        var image = new Image();
+        var error = image.LoadPngFromBuffer(Godot.FileAccess.GetFileAsBytes(resourcePath));
+        if (error == Error.Ok)
+        {
+            return ImageTexture.CreateFromImage(image);
+        }
+
+        GD.PushWarning($"Could not load map texture '{resourcePath}': {error}.");
+        return null;
+    }
+
     private void AddOuterRing(JsonElement polygonCoordinates, string? sourceCode)
     {
         var points = polygonCoordinates[0]
@@ -218,20 +489,21 @@ public sealed partial class ProvinceMap : Control
             && points.Min(point => point.X) <= 1f
             && points.Max(point => point.Y) >= 0f
             && points.Min(point => point.Y) <= 1f;
-        if (overlapsViewport)
+        if (!overlapsViewport) return;
+
+        var polygon = points.ToArray();
+        _contextLandPolygons.Add(polygon);
+        if (string.Equals(sourceCode, "FRA", StringComparison.Ordinal))
         {
-            var polygon = points.ToArray();
-            _contextLandPolygons.Add(polygon);
-            if (string.Equals(sourceCode, "FRA", StringComparison.Ordinal))
-            {
-                _gaulLandCandidates.Add(polygon);
-            }
+            _gaulLandCandidates.Add(polygon);
         }
     }
 
     private void BuildProvincePolygons()
     {
         _provincePolygons.Clear();
+        if (Size.X <= 0f || Size.Y <= 0f) return;
+
         if (_gaulLandCandidates.Count == 0)
         {
             foreach (var province in _provinces)
@@ -243,10 +515,8 @@ public sealed partial class ProvinceMap : Control
         }
 
         // The reduced source also contains French islands. The largest European
-        // polygon is mainland Gaul; internal provinces are clipped to its real coast.
-        var gaulLand = _gaulLandCandidates.MaxBy(PolygonArea)!
-            .Select(point => new Vector2(point.X * Size.X, point.Y * Size.Y))
-            .ToArray();
+        // polygon is mainland Gaul; internal provinces are clipped to its coast.
+        var gaulLand = _gaulLandCandidates.MaxBy(PolygonArea)!.Select(ToMapPoint).ToArray();
 
         foreach (var province in _provinces)
         {
@@ -255,6 +525,33 @@ public sealed partial class ProvinceMap : Control
                 .ToArray();
             _provincePolygons[province.Id] = clipped.Length > 0 ? clipped : [ToVectors(province)];
         }
+    }
+
+    private void PanBy(Vector2 amount)
+    {
+        _pan += amount;
+        ClampPan();
+        QueueRedraw();
+    }
+
+    private void ZoomAt(Vector2 screenPosition, float factor)
+    {
+        var mapPosition = ScreenToMap(screenPosition);
+        var previousZoom = _zoom;
+        _zoom = Mathf.Clamp(_zoom * factor, MinimumZoom, MaximumZoom);
+        if (Mathf.IsEqualApprox(previousZoom, _zoom)) return;
+
+        _pan = screenPosition - (mapPosition * _zoom);
+        ClampPan();
+        QueueRedraw();
+    }
+
+    private void ClampPan()
+    {
+        var minimum = Size * (1f - _zoom);
+        _pan = new Vector2(
+            Mathf.Clamp(_pan.X, minimum.X, 0f),
+            Mathf.Clamp(_pan.Y, minimum.Y, 0f));
     }
 
     private static float PolygonArea(IReadOnlyList<Vector2> polygon)
@@ -269,39 +566,29 @@ public sealed partial class ProvinceMap : Control
         return Mathf.Abs(twiceArea) / 2f;
     }
 
+    private static Vector2 Centroid(IReadOnlyList<Vector2> polygon) =>
+        polygon.Aggregate(Vector2.Zero, (sum, point) => sum + point) / polygon.Count;
+
+    private static string Abbreviate(string name) => name.Length <= 10 ? name : $"{name[..7]}.";
+
     private static Vector2 Normalize(double longitude, double latitude) => new(
         (float)((longitude - MinimumLongitude) / (MaximumLongitude - MinimumLongitude)),
         (float)((MaximumLatitude - latitude) / (MaximumLatitude - MinimumLatitude)));
 
-    private Vector2 Project(double longitude, double latitude)
-    {
-        var normalized = Normalize(longitude, latitude);
-        return new Vector2(normalized.X * Size.X, normalized.Y * Size.Y);
-    }
+    private Vector2 ToMapPoint(Vector2 normalized) => new(normalized.X * Size.X, normalized.Y * Size.Y);
+
+    private Vector2 Project(double longitude, double latitude) => ToMapPoint(Normalize(longitude, latitude));
+
+    private Vector2 ProjectToScreen(double longitude, double latitude) => MapToScreen(Project(longitude, latitude));
+
+    private Vector2 MapToScreen(Vector2 mapPosition) => (mapPosition * _zoom) + _pan;
+
+    private Vector2 ScreenToMap(Vector2 screenPosition) => (screenPosition - _pan) / _zoom;
 
     private Vector2[] ToVectors(ProvinceDefinition province) =>
         province.MapPolygon
             .Select(point => new Vector2(point.X * Size.X / DesignWidth, point.Y * Size.Y / DesignHeight))
             .ToArray();
-
-    private Vector2 ScreenToMap(Vector2 screenPosition) => (screenPosition - _pan) / _zoom;
-
-    private void ZoomAt(Vector2 screenPosition, float factor)
-    {
-        var mapPosition = ScreenToMap(screenPosition);
-        _zoom = Mathf.Clamp(_zoom * factor, MinimumZoom, MaximumZoom);
-        _pan = screenPosition - (mapPosition * _zoom);
-        ClampPan();
-        QueueRedraw();
-    }
-
-    private void ClampPan()
-    {
-        var minimum = Size * (1f - _zoom);
-        _pan = new Vector2(
-            Mathf.Clamp(_pan.X, minimum.X, 0f),
-            Mathf.Clamp(_pan.Y, minimum.Y, 0f));
-    }
 
     private static bool ContainsPoint(IReadOnlyList<Vector2> polygon, Vector2 point)
     {

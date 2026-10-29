@@ -12,6 +12,7 @@ public sealed record ProvinceTaxReport(
     ProvinceId ProvinceId,
     int BaseRevenue,
     TaxRate TaxRate,
+    bool SuppressedByRebellion,
     int Collected);
 
 public sealed record ArmyUpkeepReport(
@@ -26,6 +27,39 @@ public sealed record ProvinceAdministrationReport(
     int Paid,
     int Unpaid);
 
+public sealed record ProvinceLoyaltyReport(
+    ProvinceId ProvinceId,
+    int OpeningLoyalty,
+    int TaxPolicyModifier,
+    int FoodShortageModifier,
+    int AdministrationModifier,
+    int ClampAdjustment,
+    int ClosingLoyalty)
+{
+    public int Change => ClosingLoyalty - OpeningLoyalty;
+}
+
+public sealed record ProvinceRebellionReport(
+    ProvinceId ProvinceId,
+    bool OpeningIsRebelling,
+    bool ClosingIsRebelling)
+{
+    public bool Changed => OpeningIsRebelling != ClosingIsRebelling;
+}
+
+public sealed record FactionStabilityReport(
+    int OpeningStability,
+    int RecoveryModifier,
+    int RebellionModifier,
+    int FoodShortageModifier,
+    int UpkeepModifier,
+    int AdministrationModifier,
+    int ClampAdjustment,
+    int ClosingStability)
+{
+    public int Change => ClosingStability - OpeningStability;
+}
+
 public sealed class FactionTurnReport
 {
     internal FactionTurnReport(
@@ -39,7 +73,10 @@ public sealed class FactionTurnReport
         int closingTreasury,
         IReadOnlyList<ProvinceTaxReport> taxByProvince,
         IReadOnlyList<ArmyUpkeepReport> upkeepByArmy,
-        IReadOnlyList<ProvinceAdministrationReport> administrationByProvince)
+        IReadOnlyList<ProvinceAdministrationReport> administrationByProvince,
+        IReadOnlyList<ProvinceLoyaltyReport> loyaltyByProvince,
+        IReadOnlyList<ProvinceRebellionReport> rebellionByProvince,
+        FactionStabilityReport stability)
     {
         FactionId = factionId;
         OpeningFood = openingFood;
@@ -54,6 +91,9 @@ public sealed class FactionTurnReport
         TaxByProvince = Snapshot(taxByProvince);
         UpkeepByArmy = Snapshot(upkeepByArmy);
         AdministrationByProvince = Snapshot(administrationByProvince);
+        LoyaltyByProvince = Snapshot(loyaltyByProvince);
+        RebellionByProvince = Snapshot(rebellionByProvince);
+        Stability = stability;
         TaxRevenue = SumChecked(TaxByProvince.Select(item => item.Collected));
         UpkeepDue = SumChecked(UpkeepByArmy.Select(item => item.Due));
         UpkeepPaid = SumChecked(UpkeepByArmy.Select(item => item.Paid));
@@ -83,6 +123,9 @@ public sealed class FactionTurnReport
     public IReadOnlyList<ProvinceTaxReport> TaxByProvince { get; }
     public IReadOnlyList<ArmyUpkeepReport> UpkeepByArmy { get; }
     public IReadOnlyList<ProvinceAdministrationReport> AdministrationByProvince { get; }
+    public IReadOnlyList<ProvinceLoyaltyReport> LoyaltyByProvince { get; }
+    public IReadOnlyList<ProvinceRebellionReport> RebellionByProvince { get; }
+    public FactionStabilityReport Stability { get; }
 
     private static IReadOnlyList<T> Snapshot<T>(IReadOnlyList<T> source) =>
         new ReadOnlyCollection<T>(source.ToArray());

@@ -144,6 +144,8 @@ Turn reports must reconcile opening balance, production, consumption, tax, upkee
 
 ### M1.3 — Loyalty, rebellion, and recovery
 
+**Status:** Implemented with the approved provisional M1.3 formulas; balance remains subject to M1.6 playtesting.
+
 - Represent rebellion explicitly or justify a derived representation.
 - Use a reviewed threshold plus hysteresis or another rule that prevents oscillation.
 - Rebels pay no tax and affect stability, but do not form an independent faction or transfer ownership in M1.
@@ -154,31 +156,45 @@ Turn reports must reconcile opening balance, production, consumption, tax, upkee
 
 **Acceptance:** The player can deliberately trigger and reverse rebellion through visible policy choices.
 
-### M1.4 — Recruitment and friendly movement
+### M1.4 — Map presentation and interaction foundation
 
-- Recruitment has an explicit cost, strength, upkeep, location, deterministic unique ID, eligibility rule, and resource check.
-- Define recruitment caps and the phase in which new upkeep begins.
-- Movement permits an existing player army to move only to an adjacent friendly province.
-- Define and centrally enforce any per-turn movement restriction.
-- Display location, strength, upkeep, and Core-provided legal destinations.
-- Give military readiness a small role in the survival assessment so recruitment is not automatically pointless before combat; do not add combat or an elaborate threat system.
+**Implementation status:** Implemented locally through 2026-10-29: session/controller ownership, a responsive container layout, live-state ownership and unrest overlays, Natural Earth land-cover and shaded-relief terrain without modern political borders, generalized physical rivers, bounded cursor-centered 6x zoom, mouse and keyboard panning, screen-space level-of-detail labels, progressive settlement/army detail, and zoom-aware selection. Restore, zero-warning build, 37 tests, a three-frame Godot 4.7.2 headless scene launch, and a rendered 1.0x frame passed after the terrain correction. Interactive rendering and input verification at the higher zoom bands remains open; see `docs/m1.4-verification.md`.
 
-**Tests:** Insufficient resources, invalid/repeated movement, foreign actor, valid movement, ID stability, caps, and upkeep timing.
+The proposed follow-up for tiled regional terrain, deeper zoom, refined
+province geometry, budgets, gates, and acceptance checks is recorded in
+[`docs/m1.4-terrain-zoom-plan.md`](m1.4-terrain-zoom-plan.md). Its listed source,
+scope, licensing, zoom, and budget decisions require approval before the
+large-asset work begins.
 
-**Acceptance:** The player can recruit and move an army with complete cost and legality feedback.
-
-### M1.5 — Stable UI and Core-owned forecasts
+**Priority decision:** Complete this bounded map pass before implementing additional recruitment or movement rules. The purpose is to make the existing governance loop pleasant and legible, not to deliver final-release art.
 
 - Add a lightweight Godot session/controller that owns the engine and publishes refreshed snapshots; keep `Main` as composition root.
 - Extract stable panels when useful, without creating a UI framework.
 - Render scenario geometry together with live ownership and condition data.
 - Establish the functional map-rendering stack: geographic ocean and land masks, subdued shaded relief, generalized terrain/land-cover blending, physical rivers and coastlines, then translucent province ownership and gameplay-status overlays.
 - Support bounded cursor-centered zoom, panning, reset controls, and zoom-aware selection. Use level-of-detail rules so labels and terrain decoration remain legible rather than merely scaling every element.
-- Add small Core-owned calculations or queries for tax forecasts, recruitment costs/upkeep, and legal destinations. Do not duplicate formulas in Godot.
-- Show policy, rebellion risk, resource forecasts, rejection messages, and the last turn breakdown.
+- Use a restrained civilization-map visual hierarchy: terrain is the dominant surface, while faction ownership appears as a gentle translucent tint rather than an opaque province fill. Internal borders are thin and low contrast; selection and urgent gameplay states may use stronger outlines without obscuring terrain.
+- Keep province labels at a readable screen-space size instead of scaling them with the map. Hide, abbreviate, or selectively display labels by zoom level and available province area so a name never covers most of its province.
+- Increase the useful zoom range beyond the foundation map's 3.5x cap and reveal additional terrain, river, settlement, army, and label detail progressively. Choose the final bound through interaction and readability testing rather than treating a larger numeric maximum as sufficient.
+- Preserve policy, loyalty, rebellion, resource, rejection, and last-turn feedback while reorganizing the map and panels.
 - Add an initial pass for keyboard use, readable fonts, and scalable layout.
+- Stop at a coherent functional first pass. Final texture quality, animation, broad content expansion, and release-level polish remain M5 work.
 
-**Acceptance:** A player understands why an action succeeded, failed, or changed a resource without reading source code.
+**Acceptance:** At every supported zoom level, terrain remains visible beneath political information, borders and labels do not dominate province interiors, labels remain readable without hiding most of a province, added zoom exposes useful detail, and selection remains accurate. The player can still change tax policy, end a turn, and understand loyalty and rebellion results after the presentation changes.
+
+### M1.5 — Recruitment, friendly movement, and action forecasts
+
+- Recruitment has an explicit cost, strength, upkeep, location, deterministic unique ID, eligibility rule, and resource check.
+- Define recruitment caps and the phase in which new upkeep begins.
+- Movement permits an existing player army to move only to an adjacent friendly province.
+- Define and centrally enforce any per-turn movement restriction.
+- Add Core-owned calculations or queries for tax forecasts, recruitment costs/upkeep, and legal destinations. Do not duplicate formulas in Godot.
+- Display army location, strength, upkeep, recruitment feedback, and Core-provided legal destinations using the M1.4 interface foundation.
+- Give military readiness a small role in the survival assessment so recruitment is not automatically pointless before combat; do not add combat or an elaborate threat system.
+
+**Tests:** Insufficient resources, invalid/repeated movement, foreign actor, valid movement, ID stability, caps, upkeep timing, and forecast agreement with executed commands.
+
+**Acceptance:** The player can recruit and move an army with complete cost and legality feedback, and understands why an action succeeded or failed without reading source code.
 
 ### M1.6 — Balance and limited survival challenge
 
@@ -326,7 +342,7 @@ The Godot client owns this presentation pipeline. Terrain remains non-authoritat
 
 Use real elevation and physical geography where practical, but treat reconstructed land cover for 480 AD as generalized art direction rather than established fact. Record the source, version, extraction process, license or public-domain status, and any generated-art provenance for every committed map asset. Do not show modern political borders in the historical presentation.
 
-M1.5 delivers a readable first pass with working zoom/pan, relief, terrain blending, and ownership overlays. M5 owns final texture quality, transitions, zoom-level decoration, accessibility tuning, performance budgets, and cohesive art direction. Manual Godot checks must cover coastline alignment, seams, label behavior, selection accuracy at every zoom level, and ownership readability over each terrain type.
+M1.4 delivers a readable first pass with working zoom/pan, relief, terrain blending, and ownership overlays before additional army rules are added. M5 owns final texture quality, transitions, zoom-level decoration, accessibility tuning, performance budgets, and cohesive art direction. Manual Godot checks must cover coastline alignment, seams, label behavior, selection accuracy at every zoom level, and ownership readability over each terrain type.
 
 ### Architecture and complexity budget
 
@@ -361,13 +377,12 @@ Retain the Core/Godot boundary, modular monolith, and explicit commands. Add an 
 
 ## 13. Immediate sequence
 
-1. Review and approve the open decisions relevant to the next work package.
-2. Write and approve `docs/gameplay-principles.md`.
-3. Execute F0.1 baseline checks and CI, including an honest Godot-editor result.
-4. Draft and approve `docs/rules-v1.md` for the F0.2 vocabulary decisions.
-5. Execute F0.3 scenario and snapshot hardening.
-6. Implement M1.1's tax-policy vertical slice.
+1. Interactively verify the implemented M1.4 map at every supported zoom band and record any rendering, selection, layout, or governance-feedback defects in `docs/m1.4-verification.md`.
+2. Fix any M1.4 acceptance defects found by that review; do not use it as a final-art expansion.
+3. Review and approve recruitment, movement, deterministic ID, cost, upkeep, cap, and command-limit rules.
+4. Implement M1.5 recruitment, friendly movement, and Core-owned action forecasts on the stable map/UI foundation.
+5. Execute M1.6 balance strategies and human governance playtests.
 
-Before M1.2, freeze exact rules with worked examples. At the end of M1, stop and evaluate gameplay before starting combat. Repeat that gate after M2A, M2B, M3, and M4.
+At the end of M1, stop and evaluate gameplay before starting combat. Repeat that gate after M2A, M2B, M3, and M4.
 
 > Build a small game that is strategically interesting and technically robust before expanding its territory, populations, politics, or visual polish.

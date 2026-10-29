@@ -39,11 +39,12 @@ Treat these as the source of truth. If implementation and documentation conflict
 
 ## Current milestone policy
 
-The repository currently implements Milestone 0. The next target is Milestone 1: tax changes, recruitment, friendly adjacent movement, end-turn processing, production, consumption, taxation, military upkeep, administration, loyalty, rebellion/recovery, and stability.
+The repository is implementing Milestone 1. Tax changes, the deterministic economy pipeline, and loyalty/rebellion/stability processing are implemented through M1.3. The next target is M1.4: a bounded map presentation and interaction pass before recruitment and friendly movement move forward in M1.5.
 
 For Milestone 1:
 
 - Follow the command and turn-pipeline design in `docs/architecture.md`.
+- Complete the M1.4 map foundation before adding recruitment or movement rules. Keep it to a functional terrain, overlay, zoom, label, selection, and layout pass; final art polish remains M5.
 - Keep rivals passive; do not add combat, diplomacy, conquest, trade, characters, or AI as part of unrelated work.
 - Keep the smallest end-to-end interaction playable in Godot: issue an action, see feedback, advance the turn, and understand why values changed.
 - Do not silently advance to later milestones. If the milestone has changed, update this section and the roadmap together.

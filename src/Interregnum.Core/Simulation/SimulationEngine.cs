@@ -50,12 +50,25 @@ public sealed class SimulationEngine
                 factions[report.FactionId] = faction with
                 {
                     FoodReserves = report.ClosingFood,
-                    Treasury = report.ClosingTreasury
+                    Treasury = report.ClosingTreasury,
+                    Stability = report.Stability.ClosingStability
                 };
             }
 
+            var provinces = State.Provinces.ToDictionary(item => item.Key, item => item.Value);
+            foreach (var report in reports)
+            {
+                foreach (var loyalty in report.LoyaltyByProvince)
+                {
+                    var rebellion = report.RebellionByProvince.Single(
+                        item => item.ProvinceId == loyalty.ProvinceId);
+                    provinces[loyalty.ProvinceId] = provinces[loyalty.ProvinceId]
+                        .WithTurnOutcome(loyalty.ClosingLoyalty, rebellion.ClosingIsRebelling);
+                }
+            }
+
             var events = BuildTurnEvents(reports, completedTurn, nextTurn);
-            State = State.WithFactionsAndTurn(factions, nextTurn);
+            State = State.WithTurnOutcome(factions, provinces, nextTurn);
             return CommandResult.Success(
                 State,
                 new TurnReport(completedTurn, nextTurn, reports),
@@ -101,10 +114,16 @@ public sealed class SimulationEngine
             var taxReports = new List<ProvinceTaxReport>();
             foreach (var province in provinces)
             {
-                var collected = ApplyTaxRate(province.TaxRevenue, province.TaxRate);
+                var collected = province.IsRebelling
+                    ? 0
+                    : ApplyTaxRate(province.TaxRevenue, province.TaxRate);
                 treasury = checked(treasury + collected);
                 taxReports.Add(new ProvinceTaxReport(
-                    province.Id, province.TaxRevenue, province.TaxRate, collected));
+                    province.Id,
+                    province.TaxRevenue,
+                    province.TaxRate,
+                    province.IsRebelling,
+                    collected));
             }
 
             var upkeepReports = new List<ArmyUpkeepReport>();
@@ -128,6 +147,72 @@ public sealed class SimulationEngine
                     checked(province.AdministrativeBurden - paid)));
             }
 
+            var foodShortageModifier = -ScalePenalty(unmetFood, foodDemand, 10);
+            var loyaltyReports = new List<ProvinceLoyaltyReport>();
+            var rebellionReports = new List<ProvinceRebellionReport>();
+            foreach (var province in provinces)
+            {
+                var taxPolicyModifier = TaxLoyaltyModifier(province.TaxRate);
+                var administration = administrationReports.Single(
+                    item => item.ProvinceId == province.Id);
+                var administrationModifier = -ScalePenalty(
+                    administration.Unpaid, administration.Due, 4);
+                var rawLoyalty = checked(
+                    province.Loyalty
+                    + taxPolicyModifier
+                    + foodShortageModifier
+                    + administrationModifier);
+                var closingLoyalty = Math.Clamp(rawLoyalty, 0, 100);
+                var clampAdjustment = checked(closingLoyalty - rawLoyalty);
+                var isRebelling = province.IsRebelling
+                    ? closingLoyalty < Province.RecoveryThreshold
+                    : closingLoyalty <= Province.RebellionThreshold;
+
+                loyaltyReports.Add(new ProvinceLoyaltyReport(
+                    province.Id,
+                    province.Loyalty,
+                    taxPolicyModifier,
+                    foodShortageModifier,
+                    administrationModifier,
+                    clampAdjustment,
+                    closingLoyalty));
+                rebellionReports.Add(new ProvinceRebellionReport(
+                    province.Id, province.IsRebelling, isRebelling));
+            }
+
+            var upkeepDue = SumChecked(upkeepReports.Select(item => item.Due));
+            var upkeepUnpaid = SumChecked(upkeepReports.Select(item => item.Unpaid));
+            var administrationDue = SumChecked(administrationReports.Select(item => item.Due));
+            var administrationUnpaid = SumChecked(administrationReports.Select(item => item.Unpaid));
+            var rebelCount = rebellionReports.Count(item => item.ClosingIsRebelling);
+            var rebellionModifier = checked(-5 * rebelCount);
+            var upkeepModifier = -ScalePenalty(upkeepUnpaid, upkeepDue, 5);
+            var stabilityAdministrationModifier = -ScalePenalty(
+                administrationUnpaid, administrationDue, 5);
+            var recoveryModifier = rebelCount == 0
+                                   && unmetFood == 0
+                                   && upkeepUnpaid == 0
+                                   && administrationUnpaid == 0
+                ? 1
+                : 0;
+            var rawStability = checked(
+                faction.Stability
+                + recoveryModifier
+                + rebellionModifier
+                + foodShortageModifier
+                + upkeepModifier
+                + stabilityAdministrationModifier);
+            var closingStability = Math.Clamp(rawStability, 0, 100);
+            var stability = new FactionStabilityReport(
+                faction.Stability,
+                recoveryModifier,
+                rebellionModifier,
+                foodShortageModifier,
+                upkeepModifier,
+                stabilityAdministrationModifier,
+                checked(closingStability - rawStability),
+                closingStability);
+
             reports.Add(new FactionTurnReport(
                 faction.Id,
                 faction.FoodReserves,
@@ -139,7 +224,10 @@ public sealed class SimulationEngine
                 treasury,
                 taxReports,
                 upkeepReports,
-                administrationReports));
+                administrationReports,
+                loyaltyReports,
+                rebellionReports,
+                stability));
         }
 
         return reports;
@@ -157,15 +245,67 @@ public sealed class SimulationEngine
             report.FactionId, report.FoodDemand, report.FoodConsumed, report.UnmetFood)));
         events.AddRange(reports.SelectMany(report => report.TaxByProvince.Select(item =>
             new ProvinceTaxCollected(
-                report.FactionId, item.ProvinceId, item.BaseRevenue, item.TaxRate, item.Collected))));
+                report.FactionId,
+                item.ProvinceId,
+                item.BaseRevenue,
+                item.TaxRate,
+                item.SuppressedByRebellion,
+                item.Collected))));
         events.AddRange(reports.SelectMany(report => report.UpkeepByArmy.Select(item =>
             new ArmyUpkeepPaid(report.FactionId, item.ArmyId, item.Due, item.Paid, item.Unpaid))));
         events.AddRange(reports.SelectMany(report => report.AdministrationByProvince.Select(item =>
             new ProvinceAdministrationPaid(
                 report.FactionId, item.ProvinceId, item.Due, item.Paid, item.Unpaid))));
+        events.AddRange(reports.SelectMany(report => report.LoyaltyByProvince.Select(item =>
+            new ProvinceLoyaltyChanged(
+                report.FactionId,
+                item.ProvinceId,
+                item.OpeningLoyalty,
+                item.TaxPolicyModifier,
+                item.FoodShortageModifier,
+                item.AdministrationModifier,
+                item.ClampAdjustment,
+                item.ClosingLoyalty))));
+        events.AddRange(reports.SelectMany(report => report.RebellionByProvince
+            .Where(item => item.Changed)
+            .Select(item => new ProvinceRebellionChanged(
+                report.FactionId,
+                item.ProvinceId,
+                item.ClosingIsRebelling,
+                report.LoyaltyByProvince.Single(
+                    loyalty => loyalty.ProvinceId == item.ProvinceId).ClosingLoyalty))));
+        events.AddRange(reports.Select(report => new FactionStabilityChanged(
+            report.FactionId,
+            report.Stability.OpeningStability,
+            report.Stability.RecoveryModifier,
+            report.Stability.RebellionModifier,
+            report.Stability.FoodShortageModifier,
+            report.Stability.UpkeepModifier,
+            report.Stability.AdministrationModifier,
+            report.Stability.ClampAdjustment,
+            report.Stability.ClosingStability)));
         events.Add(new TurnAdvanced(completedTurn, nextTurn));
         return events;
     }
+
+    private static int TaxLoyaltyModifier(TaxRate taxRate) => taxRate switch
+    {
+        TaxRate.Low => 4,
+        TaxRate.Normal => -1,
+        TaxRate.High => -6,
+        _ => throw new InvalidOperationException($"Unsupported tax rate '{taxRate}'.")
+    };
+
+    private static int ScalePenalty(int amount, int total, int maximum)
+    {
+        if (amount == 0 || total == 0) return 0;
+
+        var scaled = checked(amount * maximum);
+        return checked(scaled / total + (scaled % total == 0 ? 0 : 1));
+    }
+
+    private static int SumChecked(IEnumerable<int> values) =>
+        values.Aggregate(0, (total, value) => checked(total + value));
 
     private static int ApplyTaxRate(int baseRevenue, TaxRate taxRate)
     {

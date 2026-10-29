@@ -8,7 +8,7 @@
 
 Interregnum is a single-player, turn-based historical strategy game set during the fragmentation of the Western Roman Empire. Its central idea is that conquering territory is easier than governing it: growth creates wealth and strategic depth, but also administrative cost, fragile loyalties, and instability.
 
-This repository contains the project foundation and the first **Milestone 1** vertical slices. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD, presents it in a stylized Western Europe setting in Godot, and supports authoritative tax-policy commands and deterministic economic turns.
+This repository contains the project foundation and the first **Milestone 1** vertical slices. It loads and validates a fictionalized 12-province Gaul campaign for 480 AD, presents it in a stylized Western Europe setting in Godot, and supports authoritative tax-policy commands plus deterministic economy, loyalty, rebellion, and stability turns.
 
 ## Project structure
 
@@ -46,6 +46,19 @@ A Windows GitHub Actions workflow runs the same restore, build, and test sequenc
 
 ## Launch the game
 
+From the repository root, use the launch script to restore, build, and start the game:
+
+```powershell
+.\run-game.ps1
+```
+
+Open the project in the Godot editor instead with `-Editor`, or skip the restore and build after a successful build with `-SkipBuild`:
+
+```powershell
+.\run-game.ps1 -Editor
+.\run-game.ps1 -SkipBuild
+```
+
 Open `src/Interregnum.Game/project.godot` in the Godot 4.7.2 .NET editor and press **F6/F5**, or run:
 
 ```powershell
@@ -59,17 +72,18 @@ The executable name may be `Godot_v4.7.2-stable_mono_win64.exe` if the downloade
 - Portable .NET 10 domain model for factions, provinces, settlements, armies, and world state.
 - Strict, human-readable JSON scenario loading with actionable validation failures.
 - Fictionalized Gaul, 480 AD scenario with three factions and 12 connected provinces.
-- Natural Earth-based Western Europe context map with a selectable, fictionalized 12-province Gaul campaign, seamless shared province boundaries, zoom/pan controls, faction colors, and an inspection panel.
+- Natural Earth-based Western Europe context map with subdued terrain, relief and rivers; translucent live ownership and unrest overlays; selectable fictionalized provinces; bounded 6x zoom; mouse and keyboard panning; screen-space labels; and progressive settlement and army detail.
 - xUnit coverage for loading, ownership, adjacency, and invalid scenario rejection.
 - Atomic Core-owned tax-policy commands with stable errors and explanatory events.
 - Godot controls for changing the selected player-owned province's tax policy.
 - Deterministic food production and consumption, taxation, upkeep, and administration for every faction.
+- Deterministic loyalty, rebellion/recovery, and stability processing with visible at-risk and rebellion states.
 - Reconciled Core-owned turn reports and a Godot End Turn summary.
 - Deterministic build settings and no simulation randomness.
 
 ## Current limitations
 
-- No recruitment, movement, loyalty processing, rebellion, save/load, AI, or victory conditions yet.
+- No recruitment, movement, save/load, AI, or victory conditions yet.
 - Only the Roman polity is playable; rival factions remain passive.
 - Geography and political boundaries are intentionally stylized.
 - The UI uses native controls and generated polygons; no final art, accessibility pass, localization, or resolution matrix exists yet.

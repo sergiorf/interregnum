@@ -4,7 +4,7 @@
 
 Interregnum begins as a modular monolith: one portable simulation library, one Godot client, and one test project. The simulation is authoritative. Godot renders state and submits commands but does not decide whether an action is legal or calculate its effects.
 
-The current Milestone 0 dependency direction is:
+The dependency direction is:
 
 ```text
 Interregnum.Game  ──>  Interregnum.Core  <──  Interregnum.Tests
@@ -24,7 +24,7 @@ Targets .NET 10 and references only the base class library. It contains:
 - `WorldState`, the aggregate snapshot used by simulation and presentation.
 - Scenario document records, JSON loading, validation, and conversion to a world.
 
-The first model is immutable by construction. Milestone 1 will introduce controlled state transitions through a simulation engine; callers will not mutate collections directly.
+Domain snapshots are immutable by construction. Milestone 1 state transitions run through `SimulationEngine`; callers cannot mutate authoritative collections directly.
 
 ### Interregnum.Game
 
@@ -34,7 +34,7 @@ The scenario JSON lives under the Godot resource root so it is importable and ca
 
 ### Interregnum.Tests
 
-Uses xUnit. Milestone 0 tests the scenario boundary because malformed external data is the first meaningful failure mode. Milestone 1 will add economic invariants, command rejection, turn order, rebellion/recovery, and replay determinism.
+Uses xUnit. Tests cover the scenario boundary, economic invariants, command rejection, turn order, loyalty arithmetic, rebellion/recovery boundaries, atomic overflow failure, and replay determinism.
 
 ## Domain entities
 
@@ -68,13 +68,15 @@ The first Milestone 1 slice introduces the command vocabulary:
 
 A single `SimulationEngine.Execute(GameCommand)` entry point validates against current state and returns a structured `CommandResult` containing success/failure, stable error codes, resulting state, and domain events. An invalid command never partially updates state. `SetProvinceTaxRate` and the M1.2 economic `EndTurn` are implemented; recruitment and movement return `CommandNotAvailable` until their approved work packages implement them.
 
-`EndTurn` runs a fixed ordered pipeline: production, consumption, taxation, military upkeep, administration, loyalty, rebellion, faction stability, then turn advancement. M1.2 implements the economic stages and turn advancement; the intervening loyalty, rebellion, and stability stages are reserved for M1.3. Ordered events and a reconciled turn report carry the numbers needed by the summary UI. No randomness is planned for the first playable slice.
+`EndTurn` runs a fixed ordered pipeline: production, consumption, taxation, military upkeep, administration, loyalty, rebellion, faction stability, then turn advancement. M1.2 implemented the economic stages and M1.3 completes loyalty, rebellion/recovery, and stability. Ordered events and a reconciled turn report carry the exact modifiers needed by the summary UI. Opening rebellion status controls current tax; transitions affect taxation on the following turn. No randomness is planned for the first playable slice.
 
 ## Godot integration
 
 Godot receives domain snapshots and turns them into controls and draw calls. It may format values, animate changes, and track selection, but it must not compute income, loyalty, costs, legal movement, or rebellion state. This keeps headless tests fast and leaves the simulation portable to tooling or another renderer.
 
-The current scene is intentionally code-composed to keep the first UI review compact. As interaction grows, stable panels should become separate `.tscn` scenes; domain rules still remain in Core.
+`GameSession` owns the local `SimulationEngine`, exposes its current immutable snapshot, and publishes successful state changes. `Main` remains the composition root and translates snapshots and command results into controls. `ProvinceMap` owns presentation-only geometry, camera input, hit testing, terrain decoration, labels, and live-state overlays.
+
+The current scene is intentionally code-composed to keep the first UI review compact. Its container-based layout scales the map and makes the inspection controls scroll when vertical space is constrained. As interaction grows, stable panels should become separate `.tscn` scenes; domain rules still remain in Core.
 
 ## Technical choices
 
@@ -88,6 +90,6 @@ The current scene is intentionally code-composed to keep the first UI review com
 
 - Godot/C# exports should be tested early on the commercial target machines; editor compilation is not equivalent to a packaged Windows export.
 - The JSON document currently combines simulation setup and fictionalized interactive province geometry. Presentation-only surrounding geography comes from a reduced Natural Earth 1:50m dataset and is projected by the Godot client; province cells are clipped to its mainland contour so the campaign follows the physical coast. This is convenient for the slice, but a historical map pipeline may later move both into reviewed visual metadata.
-- Province polygons are authored in viewport coordinates and assume a stylized fixed map. Camera navigation and scalable map authoring are future work.
+- Province polygons are authored in design-space viewport coordinates and scale with the available map control. The M1.4 camera provides bounded cursor-centered zoom and pan, but the scenario geometry remains stylized and is not a general geographic authoring format.
 - Immutable snapshots favor correctness over allocation efficiency. Measure real turn-processing costs before considering mutable internals or ECS-style storage.
 - Historic names, borders, demographics, and balance values are prototypes and need research and design review.

@@ -114,6 +114,10 @@ public sealed class SimulationEngineTests
         Assert.Equal(236, player.ClosingTreasury);
         Assert.Equal(153, result.State.Factions[PlayerId].FoodReserves);
         Assert.Equal(236, result.State.Factions[PlayerId].Treasury);
+        Assert.Equal(68, player.Stability.OpeningStability);
+        Assert.Equal(1, player.Stability.RecoveryModifier);
+        Assert.Equal(69, player.Stability.ClosingStability);
+        Assert.Equal(69, result.State.Factions[PlayerId].Stability);
 
         Assert.Equal(
             player.OpeningFood + player.FoodProduction - player.FoodConsumed,
@@ -142,6 +146,8 @@ public sealed class SimulationEngineTests
                 typeof(ProvinceTaxCollected),
                 typeof(ArmyUpkeepPaid),
                 typeof(ProvinceAdministrationPaid),
+                typeof(ProvinceLoyaltyChanged),
+                typeof(FactionStabilityChanged),
                 typeof(TurnAdvanced)
             ],
             eventKinds);
@@ -210,6 +216,177 @@ public sealed class SimulationEngineTests
     }
 
     [Fact]
+    public void EndTurn_AppliesTaxLoyaltyAndReconcilesClampAdjustment()
+    {
+        var world = WithProvinceState(
+            LoadWorld(),
+            new ProvinceId("armorica"),
+            loyalty: 99,
+            taxRate: TaxRate.Low);
+
+        var result = new SimulationEngine(world).Execute(new EndTurn(PlayerId));
+
+        Assert.True(result.Succeeded);
+        var report = Assert.Single(result.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        var loyalty = Assert.Single(
+            report.LoyaltyByProvince, item => item.ProvinceId == new ProvinceId("armorica"));
+        Assert.Equal(99, loyalty.OpeningLoyalty);
+        Assert.Equal(4, loyalty.TaxPolicyModifier);
+        Assert.Equal(0, loyalty.FoodShortageModifier);
+        Assert.Equal(0, loyalty.AdministrationModifier);
+        Assert.Equal(-3, loyalty.ClampAdjustment);
+        Assert.Equal(100, loyalty.ClosingLoyalty);
+        Assert.Equal(
+            loyalty.OpeningLoyalty
+            + loyalty.TaxPolicyModifier
+            + loyalty.FoodShortageModifier
+            + loyalty.AdministrationModifier
+            + loyalty.ClampAdjustment,
+            loyalty.ClosingLoyalty);
+    }
+
+    [Fact]
+    public void EndTurn_AppliesFactionWideShortageAndUnpaidObligationPenalties()
+    {
+        var original = LoadWorld();
+        var factions = original.Factions.ToDictionary(item => item.Key, item => item.Value);
+        factions[PlayerId] = factions[PlayerId] with { FoodReserves = 0, Treasury = 0 };
+        var provinces = original.Provinces.ToDictionary(
+            item => item.Key,
+            item => item.Value.OwnerId == PlayerId
+                ? CopyProvince(item.Value, taxRevenue: 0)
+                : item.Value);
+        var world = new WorldState(
+            original.ScenarioId,
+            original.Name,
+            original.StartYear,
+            original.Turn,
+            factions,
+            provinces,
+            original.Armies);
+
+        var result = new SimulationEngine(world).Execute(new EndTurn(PlayerId));
+
+        Assert.True(result.Succeeded);
+        var report = Assert.Single(result.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        Assert.Equal(7, report.UnmetFood);
+        Assert.Equal(8, report.UpkeepUnpaid);
+        Assert.Equal(28, report.AdministrationUnpaid);
+        Assert.All(report.LoyaltyByProvince, item => Assert.Equal(-1, item.FoodShortageModifier));
+        Assert.All(report.LoyaltyByProvince, item => Assert.Equal(-4, item.AdministrationModifier));
+        var aurelianum = Assert.Single(
+            report.LoyaltyByProvince, item => item.ProvinceId == OwnedProvinceId);
+        Assert.Equal(73, aurelianum.ClosingLoyalty);
+        Assert.Equal(-1, report.Stability.FoodShortageModifier);
+        Assert.Equal(-5, report.Stability.UpkeepModifier);
+        Assert.Equal(-5, report.Stability.AdministrationModifier);
+        Assert.Equal(57, report.Stability.ClosingStability);
+    }
+
+    [Fact]
+    public void EndTurn_NewRebellionPaysCurrentTaxThenSuppressesFollowingTurnTax()
+    {
+        var world = WithProvinceState(
+            LoadWorld(), OwnedProvinceId, loyalty: 36, taxRate: TaxRate.High);
+        var engine = new SimulationEngine(world);
+
+        var first = engine.Execute(new EndTurn(PlayerId));
+
+        Assert.True(first.Succeeded);
+        var firstReport = Assert.Single(first.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        var firstTax = Assert.Single(firstReport.TaxByProvince, item => item.ProvinceId == OwnedProvinceId);
+        Assert.Equal(20, firstTax.Collected);
+        Assert.False(firstTax.SuppressedByRebellion);
+        Assert.Equal(30, first.State.Provinces[OwnedProvinceId].Loyalty);
+        Assert.True(first.State.Provinces[OwnedProvinceId].IsRebelling);
+        Assert.Contains(first.Events, item => item is ProvinceRebellionChanged
+        {
+            ProvinceId: var provinceId,
+            IsRebelling: true,
+            Loyalty: 30
+        } && provinceId == OwnedProvinceId);
+
+        var second = engine.Execute(new EndTurn(PlayerId));
+
+        Assert.True(second.Succeeded);
+        var secondReport = Assert.Single(second.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        var secondTax = Assert.Single(secondReport.TaxByProvince, item => item.ProvinceId == OwnedProvinceId);
+        Assert.Equal(0, secondTax.Collected);
+        Assert.True(secondTax.SuppressedByRebellion);
+        Assert.True(second.State.Provinces[OwnedProvinceId].IsRebelling);
+    }
+
+    [Fact]
+    public void EndTurn_RecoveringProvincePaysTaxOnFollowingTurn()
+    {
+        var world = WithProvinceState(
+            LoadWorld(), OwnedProvinceId, loyalty: 41, taxRate: TaxRate.Low, isRebelling: true);
+        var engine = new SimulationEngine(world);
+
+        var recovery = engine.Execute(new EndTurn(PlayerId));
+
+        Assert.True(recovery.Succeeded);
+        var recoveryReport = Assert.Single(
+            recovery.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        var recoveryTax = Assert.Single(
+            recoveryReport.TaxByProvince, item => item.ProvinceId == OwnedProvinceId);
+        Assert.Equal(0, recoveryTax.Collected);
+        Assert.True(recoveryTax.SuppressedByRebellion);
+        Assert.Equal(45, recovery.State.Provinces[OwnedProvinceId].Loyalty);
+        Assert.False(recovery.State.Provinces[OwnedProvinceId].IsRebelling);
+
+        var following = engine.Execute(new EndTurn(PlayerId));
+
+        var followingReport = Assert.Single(
+            following.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        var followingTax = Assert.Single(
+            followingReport.TaxByProvince, item => item.ProvinceId == OwnedProvinceId);
+        Assert.Equal(6, followingTax.Collected);
+        Assert.False(followingTax.SuppressedByRebellion);
+    }
+
+    [Fact]
+    public void EndTurn_MultipleRebellionsApplyOneStabilityPenaltyEach()
+    {
+        var world = WithProvinceState(
+            LoadWorld(), OwnedProvinceId, loyalty: 36, taxRate: TaxRate.High);
+        world = WithProvinceState(
+            world, new ProvinceId("arvernia"), loyalty: 36, taxRate: TaxRate.High);
+
+        var result = new SimulationEngine(world).Execute(new EndTurn(PlayerId));
+
+        Assert.True(result.Succeeded);
+        var report = Assert.Single(result.TurnReport!.Factions, item => item.FactionId == PlayerId);
+        Assert.Equal(2, report.RebellionByProvince.Count(item => item.Changed));
+        Assert.Equal(-10, report.Stability.RebellionModifier);
+        Assert.Equal(58, report.Stability.ClosingStability);
+    }
+
+    [Theory]
+    [InlineData(31, false, TaxRate.Normal, 30, true, false)]
+    [InlineData(32, false, TaxRate.Normal, 31, false, true)]
+    [InlineData(40, true, TaxRate.Low, 44, true, false)]
+    [InlineData(41, true, TaxRate.Low, 45, false, true)]
+    public void EndTurn_UsesRebellionAndRecoveryHysteresis(
+        int openingLoyalty,
+        bool openingRebellion,
+        TaxRate taxRate,
+        int expectedLoyalty,
+        bool expectedRebellion,
+        bool expectedAtRisk)
+    {
+        var world = WithProvinceState(
+            LoadWorld(), OwnedProvinceId, openingLoyalty, taxRate, openingRebellion);
+
+        var result = new SimulationEngine(world).Execute(new EndTurn(PlayerId));
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(expectedLoyalty, result.State.Provinces[OwnedProvinceId].Loyalty);
+        Assert.Equal(expectedRebellion, result.State.Provinces[OwnedProvinceId].IsRebelling);
+        Assert.Equal(expectedAtRisk, result.State.Provinces[OwnedProvinceId].IsAtRisk);
+    }
+
+    [Fact]
     public void EndTurn_RejectsOverflowWithoutChangingState()
     {
         var original = LoadWorld();
@@ -253,6 +430,11 @@ public sealed class SimulationEngineTests
             Assert.Equal(
                 firstResult.State.Factions.OrderBy(item => item.Key.Value).Select(item => item.Value),
                 secondResult.State.Factions.OrderBy(item => item.Key.Value).Select(item => item.Value));
+            Assert.Equal(
+                firstResult.State.Provinces.OrderBy(item => item.Key.Value).Select(item =>
+                    (item.Value.Id, item.Value.Loyalty, item.Value.IsRebelling, item.Value.TaxRate)),
+                secondResult.State.Provinces.OrderBy(item => item.Key.Value).Select(item =>
+                    (item.Value.Id, item.Value.Loyalty, item.Value.IsRebelling, item.Value.TaxRate)));
         }
     }
 
@@ -290,4 +472,47 @@ public sealed class SimulationEngineTests
         using var stream = File.OpenRead(path);
         return ScenarioLoader.CreateWorld(ScenarioLoader.LoadDefinition(stream));
     }
+
+    private static WorldState WithProvinceState(
+        WorldState world,
+        ProvinceId provinceId,
+        int loyalty,
+        TaxRate taxRate,
+        bool isRebelling = false)
+    {
+        var provinces = world.Provinces.ToDictionary(item => item.Key, item => item.Value);
+        provinces[provinceId] = CopyProvince(
+            provinces[provinceId],
+            loyalty: loyalty,
+            taxRate: taxRate,
+            isRebelling: isRebelling);
+        return new WorldState(
+            world.ScenarioId,
+            world.Name,
+            world.StartYear,
+            world.Turn,
+            world.Factions,
+            provinces,
+            world.Armies);
+    }
+
+    private static Province CopyProvince(
+        Province province,
+        int? taxRevenue = null,
+        int? loyalty = null,
+        TaxRate? taxRate = null,
+        bool? isRebelling = null) =>
+        new(
+            province.Id,
+            province.Name,
+            province.OwnerId,
+            province.Population,
+            province.AgriculturalProduction,
+            taxRevenue ?? province.TaxRevenue,
+            loyalty ?? province.Loyalty,
+            province.AdministrativeBurden,
+            taxRate ?? province.TaxRate,
+            province.Settlement,
+            province.Neighbors,
+            isRebelling ?? province.IsRebelling);
 }

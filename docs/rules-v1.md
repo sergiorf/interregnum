@@ -1,8 +1,8 @@
 # Milestone 1 rules vocabulary
 
-**Status:** The M1.1 tax-command subset and provisional M1.2 economy rules are adopted; loyalty, rebellion, recruitment, and movement recommendations remain draft until their respective reviews
+**Status:** The M1.1 tax command, M1.2 economy, and M1.3 loyalty/rebellion subsets are adopted; recruitment and movement recommendations remain draft until their review
 
-This document defines the minimum vocabulary and timing needed to implement Milestone 1 without hidden defaults. Items labelled **Recommendation** require human approval. Loyalty changes, rebellion thresholds, recruitment values, and stability formulas remain deliberately unresolved until their respective reviews.
+This document defines the minimum vocabulary and timing needed to implement Milestone 1 without hidden defaults. Items labelled **Recommendation** require human approval. Recruitment values and movement limits remain deliberately unresolved until their review.
 
 ## 1. Time and session model
 
@@ -51,15 +51,15 @@ Changing a rate is immediate, costs no resource, and may be done more than once 
 
 Tax revenue is collected during `EndTurn`, not when policy changes. Opening rebellion status determines whether a province pays tax for that round. A rebellion or recovery transition produced later in the pipeline applies to the following round.
 
-For the provisional M1 balance, Low/Normal/High taxation collects 30/60/100 percent of base revenue. Multiplication occurs before division by 100 and integer division truncates the non-negative result. For example, base revenue 11 at Normal produces `11 * 60 / 100 = 6`. Loyalty effects remain unresolved for M1.3.
+For the provisional M1 balance, Low/Normal/High taxation collects 30/60/100 percent of base revenue and changes loyalty by +4/-1/-6 respectively. Multiplication occurs before division by 100 and integer division truncates the non-negative result. For example, base revenue 11 at Normal produces `11 * 60 / 100 = 6`.
 
 ## 5. Food, currency, and mandatory costs
 
 Food and currency are non-negative integer faction resources. Voluntary commands are rejected atomically when their full immediate cost cannot be paid. Milestone 1 has no loans, debt, resource trading, or negative balances.
 
-Food is produced and consumed during `EndTurn`. Each owned province adds its `AgriculturalProduction` to the faction pool and demands `ceil(Population / 4)` food. Production is added before consumption. A faction-wide shortage for that round is the unmet consumption after all available food is consumed. Shortage is a reported turn outcome, not assigned to an arbitrary province and not stored as a permanent `Famine` flag. Its loyalty and stability consequences remain an M1.3 decision.
+Food is produced and consumed during `EndTurn`. Each owned province adds its `AgriculturalProduction` to the faction pool and demands `ceil(Population / 4)` food. Production is added before consumption. A faction-wide shortage for that round is the unmet consumption after all available food is consumed. Shortage is a reported turn outcome, not assigned to an arbitrary province and not stored as a permanent `Famine` flag. Every owned province and faction stability receive `-ceil(10 * unmet / demand)`, capped at -10; the modifier is zero when demand is zero.
 
-Military upkeep and provincial administration are mandatory end-turn obligations. Tax is added first, then army upkeep is paid in stable army-ID order, followed by administration in stable province-ID order. Each obligation receives as much of the remaining non-negative treasury as possible. The report exposes due, paid, and unpaid amounts. M1.2 does not remove armies or apply a hidden penalty; consequences for unpaid obligations remain an explicit M1.3 decision.
+Military upkeep and provincial administration are mandatory end-turn obligations. Tax is added first, then army upkeep is paid in stable army-ID order, followed by administration in stable province-ID order. Each obligation receives as much of the remaining non-negative treasury as possible. The report exposes due, paid, and unpaid amounts. Unpaid army upkeep reduces faction stability by `ceil(5 * unpaid / due)`, capped at -5. Total unpaid administration applies the same stability formula, while each affected province loses `ceil(4 * unpaid / due)` loyalty, capped at -4. A zero due amount produces no penalty. M1.3 does not remove armies for unpaid upkeep.
 
 All arithmetic uses checked integers. An overflow rejects `EndTurn` atomically with an unchanged state and no events.
 
@@ -67,15 +67,17 @@ All arithmetic uses checked integers. An overflow rejects `EndTurn` atomically w
 
 Rebellion is an explicit province condition. Ownership does not change in Milestone 1, no rebel faction or army is created, and no combat occurs.
 
-An opening rebel province produces food, pays no tax, still creates its approved administrative effects, and contributes its approved stability penalty. Tax policy may still be changed there so the player can pursue recovery. Recruitment from a rebel province is not allowed.
+An opening rebel province produces food, pays no tax, and still creates its approved administrative effects. A province that remains rebellious after the transition stage contributes its stability penalty. Tax policy may still be changed there so the player can pursue recovery. Recruitment from a rebel province is not allowed.
 
-Loyalty changes are calculated during `EndTurn`, clamped to the approved bounds, and fully attributed in events and the report. Rebellion and recovery transitions occur after loyalty changes. Their thresholds must use hysteresis or another approved rule that prevents turn-by-turn oscillation.
+Loyalty changes are calculated during `EndTurn` and clamped to 0-100. Events and reports expose the tax, food-shortage, administration, and clamp modifiers so the closing value reconciles exactly. Rebellion and recovery transitions occur after loyalty changes.
 
-The rebellion threshold, recovery threshold, tax effects, shortage effects, administrative interaction, and stability formula remain unresolved M1.3 decisions.
+A governed province enters rebellion at loyalty 30 or lower. A rebel province recovers at loyalty 45 or higher, providing hysteresis. Governed provinces at loyalty 45 or lower are shown as at risk. New rebellions and recoveries affect tax collection on the following turn, but the post-transition rebellion state affects stability immediately.
+
+Faction stability is clamped to 0-100. A turn with no closing rebel provinces, food shortage, unpaid upkeep, or unpaid administration grants +1 recovery. Each closing rebel province applies -5. Food shortage applies the same penalty used for loyalty, while unpaid upkeep and total unpaid administration each apply `-ceil(5 * unpaid / due)`, capped at -5. Reports include each modifier and any clamp adjustment.
 
 ## 7. Recruitment
 
-Recruitment creates one basic army in an eligible actor-owned, non-rebel province. Its currency cost, strength, upkeep, eligible settlement rule, and any realm or province cap are scenario/rules values to approve for M1.4. There is no variable unit designer or army type system.
+Recruitment creates one basic army in an eligible actor-owned, non-rebel province. Its currency cost, strength, upkeep, eligible settlement rule, and any realm or province cap are scenario/rules values to approve for M1.5. There is no variable unit designer or army type system.
 
 The full recruitment cost is paid immediately. The recruited army exists immediately and may move once in the same turn.
 
@@ -107,7 +109,7 @@ The fixed pipeline is:
 
 Every stage completes for all affected factions in stable ID order before the next stage begins. Events are emitted in pipeline stage, faction ID, province or army ID order. No stage reads unordered iteration as a tie-breaker.
 
-Stages 1–5 and 9 are implemented in M1.2. Stages 6–8 remain reserved in this order for M1.3 and do not yet change state.
+Stages 1–5 were implemented in M1.2; stages 6–8 are implemented in M1.3. All nine stages now execute in the documented order.
 
 ## 10. Turn report reconciliation
 
@@ -127,16 +129,13 @@ Totals must reconcile exactly with their details and with the resulting snapshot
 
 ## 11. Decisions still requiring approval
 
-F0.2 approval is requested for:
+The remaining M1 decisions are:
 
 1. One-year turns and the year-display formula.
-2. One persistent playable actor and passive rivals processed by the same end-turn pipeline.
-3. Removal of faction-level `MilitaryStrength` in favor of armies.
-4. Free, repeatable tax changes with rejected no-ops.
-5. Non-negative food and treasury, with unaffordable voluntary commands rejected.
-6. Explicit rebellion with opening-status timing and recovery through policy.
-7. Immediate recruitment with same-round upcoming upkeep and one allowed movement.
-8. One successful move per army per turn.
-9. Post-turn-only campaign checks and the proposed deterministic event ordering.
+2. Removal of faction-level `MilitaryStrength` in favor of armies.
+3. Recruitment cost, strength, upkeep, eligibility, caps, and deterministic ID format.
+4. Same-turn upkeep for new armies and whether a new army may move immediately.
+5. One successful move per army per turn and the saveable state used to enforce it.
+6. Post-turn campaign checks and the later survival criteria.
 
-Approval of this vocabulary does **not** approve economy coefficients, insufficient-treasury consequences, rebellion/recovery thresholds, recruitment values, or stability formulas. Those values require worked examples before their respective implementation packages.
+The adopted M1.3 formulas do **not** approve recruitment values or movement rules. Those require worked examples before M1.5 implementation; M1.4 is the map presentation package.

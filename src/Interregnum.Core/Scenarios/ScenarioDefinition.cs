@@ -58,6 +58,8 @@ public sealed record ProvinceDefinition
 
     public TaxRate TaxRate { get; init; } = TaxRate.Normal;
 
+    public bool IsRebelling { get; init; }
+
     public string? SettlementName { get; init; }
 
     public List<string> Neighbors { get; init; } = [];

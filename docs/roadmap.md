@@ -23,6 +23,7 @@ This gate stabilizes the already implemented Milestone 0; it is not a new gamepl
 
 - Explicit validated tax, recruit, move, and end-turn commands.
 - Deterministic food, tax, military, administration, loyalty, rebellion, and stability processing.
+- After the initial economy and loyalty slices, deliver a bounded map presentation pass before adding recruitment and movement: readable terrain, translucent ownership, gentle borders, useful zoom, level-of-detail labels, and accurate selection.
 - Player controls, action feedback, and numerical turn summary.
 - Core-owned forecasts, live map state, basic keyboard/readability support, and a lightweight 15-turn survival assessment.
 - Named headless balance strategies and recorded 10–20-turn human playtests.

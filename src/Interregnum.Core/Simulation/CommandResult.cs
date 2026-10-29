@@ -39,6 +39,7 @@ public sealed record ProvinceTaxCollected(
     ProvinceId ProvinceId,
     int BaseRevenue,
     TaxRate TaxRate,
+    bool SuppressedByRebellion,
     int Amount) : DomainEvent;
 
 public sealed record ArmyUpkeepPaid(
@@ -54,6 +55,33 @@ public sealed record ProvinceAdministrationPaid(
     int Due,
     int Paid,
     int Unpaid) : DomainEvent;
+
+public sealed record ProvinceLoyaltyChanged(
+    FactionId FactionId,
+    ProvinceId ProvinceId,
+    int OpeningLoyalty,
+    int TaxPolicyModifier,
+    int FoodShortageModifier,
+    int AdministrationModifier,
+    int ClampAdjustment,
+    int ClosingLoyalty) : DomainEvent;
+
+public sealed record ProvinceRebellionChanged(
+    FactionId FactionId,
+    ProvinceId ProvinceId,
+    bool IsRebelling,
+    int Loyalty) : DomainEvent;
+
+public sealed record FactionStabilityChanged(
+    FactionId FactionId,
+    int OpeningStability,
+    int RecoveryModifier,
+    int RebellionModifier,
+    int FoodShortageModifier,
+    int UpkeepModifier,
+    int AdministrationModifier,
+    int ClampAdjustment,
+    int ClosingStability) : DomainEvent;
 
 public sealed record TurnAdvanced(int CompletedTurn, int NextTurn) : DomainEvent;
 
